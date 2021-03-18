@@ -1,0 +1,194 @@
+#include "waifu2x_py.h"
+
+
+PyMODINIT_FUNC
+PyInit_waifu2x(void)
+{
+    PyObject* m;
+
+    m = PyModule_Create(&spammodule);
+    if (m == NULL)
+        return NULL;
+    std::string models[3] = {"CUNET", "ANIME_STYLE_ART_RGB", "PHOTO"};
+    int index = 0;
+    for (int j = 0; j < 3; j++)
+    {
+        std::string name = models[j];
+        for (int i = -1; i <= 3; i++)
+        {
+            char modelName[256];
+            char modelNameTTa[256];
+            if (i == -1)
+            {
+                sprintf(modelName, "MODEL_%s_NO_NOISE", name.c_str());
+            }
+            else
+            {
+                sprintf(modelName, "MODEL_%s_NOISE%d", name.c_str(), i);
+            }
+            sprintf(modelNameTTa, "%s_TTA", modelName);
+            PyModule_AddIntConstant(m, modelName, index++);
+            PyModule_AddIntConstant(m, modelNameTTa, index++);
+        }
+    }
+    return m;
+}
+
+static PyObject*
+waifu2x_py_init(PyObject* self, PyObject* args)
+{
+    if (IsInit)
+    {
+        return PyLong_FromLong(0);
+    }
+    int sts = waifu2x_init();
+    if (!sts) IsInit = true;
+    return PyLong_FromLong(sts);
+}
+
+static PyObject*
+waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+    if (!IsInit) return PyLong_FromLong(-1);
+    if (IsInitSet) return PyLong_FromLong(0);
+    int gpuId = 0;
+    int threadNum = 0;
+    const char* model = NULL;
+    char* kwarg_names[] = { "gpuId","threadNum","model", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|s", kwarg_names, &gpuId, &threadNum, &model))
+        return PyLong_FromLong(-1);
+    int sts = waifu2x_init_set(gpuId, threadNum, model);
+    if (!sts) IsInitSet = true;
+    return PyLong_FromLong(sts);
+}
+
+
+static PyObject*
+waifu2x_py_clear(PyObject* self, PyObject* args)
+{
+    if (!IsInitSet)
+    {
+        return PyLong_FromLong(0);
+    }
+    waifu2x_clear();
+    return PyLong_FromLong(0);
+}
+
+static PyObject*
+waifu2x_py_delete(PyObject* self, PyObject* args)
+{   
+    if (!IsInitSet)
+    {
+        Py_RETURN_NONE;
+    }
+    PyObject* bufobj;
+    if (!PyArg_ParseTuple(args, "O", &bufobj)) {
+        Py_RETURN_NONE;
+    }
+    int list_len = PyObject_Size(bufobj);
+    if (list_len <= 0)
+    {
+        Py_RETURN_NONE;
+    }
+    std::set<int> taskIds;
+    PyObject* list_item = NULL;
+    int taskId;
+    for (int i = 0; i < list_len; i++)
+    {
+        list_item = PyList_GetItem(bufobj, i);//根据下标取出python列表中的元素
+        PyArg_Parse(list_item, "i", &taskId);
+        taskIds.insert(taskId);
+    }
+    waifu2x_remove(taskIds);
+    return PyLong_FromLong(0);
+}
+
+
+static PyObject*
+waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+    if (!IsInitSet)
+    {
+        return PyLong_FromLong(0);
+    }
+    unsigned char* b=NULL;
+    unsigned int size;
+    int sts = 1;
+    int callBack;
+    int modelIndex = 0;
+    const char* format = NULL;
+    int width = 0;
+    int high = 0;
+
+    char* kwarg_names[] = { "data","modelIndex","backId", "format", "width", "high", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#ii|sii", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high))
+        return PyLong_FromLong(-1);
+    if (!b)
+    {
+        return PyLong_FromLong(-1);
+    }
+    //b = (unsigned char* )PyBytes_AsString((PyObject*)c);
+    unsigned char* data = NULL;
+
+    data = (unsigned char*)malloc(size);
+    memcpy(data, b, size);
+    sts = waifu2x_addData(data, size, callBack, modelIndex, format, width, high);
+    return PyLong_FromLong(sts);
+}
+static PyObject*
+waifu2x_py_get_info(PyObject* self, PyObject* args)
+{
+    if (!IsInit)
+    {
+        Py_RETURN_NONE;
+    }
+    int gpu_count = ncnn::get_gpu_count();
+    if (gpu_count <= 0)
+    {
+        Py_RETURN_NONE;
+    }
+    PyObject* pyList = PyList_New(gpu_count);
+    for (int i = 0; i < gpu_count; i++)
+    {
+        const char* name = ncnn::get_gpu_info(i).device_name();
+        PyObject* item = Py_BuildValue("s", name);
+        PyList_SetItem(pyList, i, item);
+    }
+    return pyList;
+}
+
+static PyObject*
+waifu2x_py_load(PyObject* self, PyObject* args)
+{
+    if (!IsInitSet) Py_RETURN_NONE;
+    void* out = NULL;
+    unsigned long outSize = 0;
+    unsigned int timeout;
+    double tick;
+    int callBack;
+    if (!PyArg_ParseTuple(args, "i", &timeout))
+        Py_RETURN_NONE;
+    int sts = waifu2x_getData(out, outSize, tick, callBack, timeout);
+    if (sts <= 0)
+    {
+        Py_RETURN_NONE;
+    }
+    // TODO 需要支持None的返回值
+    PyObject * data = Py_BuildValue("y#iid", (char*)out, outSize, sts, callBack, tick);
+    if (out) free(out);
+    return data;
+}
+
+static PyObject*
+waifu2x_py_stop(PyObject* self, PyObject* args)
+{
+    if (IsInit)
+    {
+        return PyLong_FromLong(0);
+    }
+    
+    int sts = waifu2x_stop();
+    IsInit = false;
+    IsInitSet = false;
+    return PyLong_FromLong(sts);
+}
