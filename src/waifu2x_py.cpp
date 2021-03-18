@@ -119,9 +119,10 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
     const char* format = NULL;
     int width = 0;
     int high = 0;
+    float scale = 0;
 
-    char* kwarg_names[] = { "data","modelIndex","backId", "format", "width", "high", NULL };
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#ii|sii", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high))
+    char* kwarg_names[] = { "data","modelIndex","backId", "format", "width", "high", "scale", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#ii|siif", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high, &scale))
         return PyLong_FromLong(-1);
     if (!b)
     {
@@ -132,7 +133,7 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
 
     data = (unsigned char*)malloc(size);
     memcpy(data, b, size);
-    sts = waifu2x_addData(data, size, callBack, modelIndex, format, width, high);
+    sts = waifu2x_addData(data, size, callBack, modelIndex, format, width, high, scale);
     return PyLong_FromLong(sts);
 }
 static PyObject*
@@ -191,4 +192,12 @@ waifu2x_py_stop(PyObject* self, PyObject* args)
     IsInit = false;
     IsInitSet = false;
     return PyLong_FromLong(sts);
+}
+
+
+static PyObject*
+waifu2x_py_version(PyObject* self, PyObject* args)
+{
+    PyObject* data = Py_BuildValue("s", Version);
+    return data;
 }

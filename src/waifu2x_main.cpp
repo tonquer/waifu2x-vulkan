@@ -68,6 +68,11 @@ void* waifu2x_proc(void* args)
         if (waifu2x && pixeldata)
         {
             v.inimage = ncnn::Mat(w, h, (void*)pixeldata, (size_t)c, c);
+            if (v.toH <= 0 || v.toW <= 0)
+            {
+                v.toH = ceil(v.scale * h);
+                v.toW = ceil(v.scale * w);
+            }
 
             if (c == 4)
             {
@@ -100,12 +105,6 @@ void* waifu2x_proc(void* args)
                 }
             }
             v.procTick = clock();
-
-            if (v.toH <= 0 || v.toW <= 0)
-            {
-                v.toH = v.outimage.w;
-                v.toW = v.outimage.h;
-            }
 
             int success = 0;
             if (!v.file.compare("png") || !v.file.compare("PNG"))
@@ -311,7 +310,7 @@ int waifu2x_init_set(int gpuId2, int threadNum, const char *setModel)
 }
 
 
-int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH)
+int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale)
 {
     Task v;
     TaskId ++;
@@ -322,6 +321,9 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
     v.modelIndex = modelIndex;
     v.toH = toH;
     v.toW = toW;
+    v.scale = scale;
+    if ((toH <= 0 || toW <= 0) && scale <= 0)
+        return -1;
     if (format) v.file = format;
     Toproc.put(v);
     return TaskId;

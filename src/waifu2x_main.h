@@ -35,7 +35,7 @@ public:
     int modelIndex;
     unsigned long toW;
     unsigned long toH;
-    int scale = 2;
+    float scale = 2;
 
     clock_t startTick;
     clock_t encodeTick;
@@ -141,7 +141,7 @@ private:
     std::queue<Task> tasks;
 };
 
-int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH);
+int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale);
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout);
 int waifu2x_init();
 int waifu2x_init_set(int gpuId2, int threadNum, const char * model);
