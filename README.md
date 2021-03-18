@@ -20,22 +20,24 @@ MODEL_模型名_NOISE降噪等级
 MODEL_模型名_NOISE降噪等级_TTA
 ```
 ```shell
-waifu2x.init()
+waifu2x.init() -> int
 # 初始化ncnn，只能执行一次
+# 返回值小于0失败
 ```
 ```shell
-waifu2x.getGpuInfo()
+waifu2x.getGpuInfo() -> []
 # 返回一个gpu名的字符串列表，索引代表gpuId
 ```
 ```shell
-waifu2x.initSet(gpuId: int, threadNum: int, model: str)
+waifu2x.initSet(gpuId: int, threadNum: int, model: str) -> int
 # 初始化设置参数，只能执行一次
 # gpuId, -1为CPU，你选择的gpu
 # threadNum，启动图片处理的线程数
 # model，可选, 选择加载的model名字符串，如不传入将加载所有的models到内存中
+# 返回值小于0失败
 ```
 ```shell
-waifu2x.add(data: bytes, modelIndex: int, backId: int, format: str, width: int, high: int, scale: float)
+waifu2x.add(data: bytes, modelIndex: int, backId: int, format: str, width: int, high: int, scale: float) -> int
 # 添加图片处理，需初始化后才能调用
 # data, 图片的字节
 # modelIndex, 选择的模型索引
@@ -44,11 +46,17 @@ waifu2x.add(data: bytes, modelIndex: int, backId: int, format: str, width: int, 
 # width, 可选, 图片放大后的宽度，和high一起使用
 # high, 可选, 图片放大后的长度，和width一起使用
 # scale, 可选, 可以不指定width和high，输入放大比例
+# 返回值小于0失败
 ```
 ```shell
-waifu2x.load(block: int)
+waifu2x.load(block: int) -> None/(data: bytes, status: int, backId: int, tick: float)
 # 取出处理好的图片，需初始化后才能调用
 # block, 0堵塞（不建议使用），非0 不堵塞
+# 返回值None失败
+# data, 处理后数据
+# status, 小于0失败
+# backId, Add中传入的值
+# tick，耗时
 ```
 ```shell
 waifu2x.clear()
