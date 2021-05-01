@@ -1,8 +1,12 @@
-#define PY_SSIZE_T_CLEAN
+// #define PY_SSIZE_T_CLEAN
 
 #ifndef WAIFU2X_PY_H
 #define WAIFU2X_PY_H
-#include <python.h>
+#if _WIN32
+    #include <python.h>
+#else
+    #include <Python.h>
+#endif
 #include "waifu2x_main.h"
 
 static PyObject*
@@ -30,6 +34,9 @@ static PyObject*
 waifu2x_py_version(PyObject* self, PyObject* args);
 
 static PyObject*
+waifu2x_py_test(PyObject* self, PyObject* args);
+
+static PyObject*
 waifu2x_py_get_info(PyObject* self, PyObject* args);
 
 PyMODINIT_FUNC
@@ -54,6 +61,8 @@ static PyMethodDef SpamMethods[] = {
      "Execute a shell command."},
     {"getVersion",  waifu2x_py_version, METH_VARARGS,
      "Execute a shell command."},
+    {"test",  waifu2x_py_test, METH_VARARGS,
+     "Execute a shell command."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -68,5 +77,5 @@ static struct PyModuleDef spammodule = {
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "v1.0.0";
+static const char* Version = "version: v1.0.0\ngit:https://github.com/tonquer/waifu2x-ncnn-vulkan-python \n";
 #endif 

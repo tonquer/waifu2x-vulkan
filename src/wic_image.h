@@ -115,7 +115,7 @@ RETURN:
     return bgrdata;
 }
 
-int wic_encode_image_to_data(int w, int h, int c, void* bgrdata, void*& out, unsigned long& outSize, unsigned long modelIndex, unsigned long toW, unsigned long toH, unsigned long oldW, unsigned long oldH)
+int wic_encode_image_to_data(int w, int h, int c, void* bgrdata, void*& out, int& outSize, unsigned long modelIndex, unsigned long toW, unsigned long toH, unsigned long oldW, unsigned long oldH)
 {
     IWICImagingFactory* factory = 0;
     IWICStream* stream = 0;
@@ -189,37 +189,13 @@ RETURN:
         ULARGE_INTEGER uli = sts.cbSize;
         LARGE_INTEGER zero;
         zero.QuadPart = 0;
-        unsigned long outSize2 = (ULONG)uli.QuadPart;
+        outSize = (ULONG)uli.QuadPart;
 
-        unsigned int extSize = 4 + 4 + 4;
-
-        int extChunkSize = extSize + 12;
-
-        out = malloc(outSize2 + extChunkSize);
-        outSize = outSize2 + extChunkSize;
-
-        unsigned long start = 8 + 25;
-        unsigned long end = outSize2 - start;
-
+        out = malloc(outSize);
         ULONG written;
         stream->Seek(zero, STREAM_SEEK_SET, NULL);
-        stream->Read(out, start, &written);
+        stream->Read(out, outSize, &written);
            
-        ReverseBytes(extSize);
-
-        unsigned char insertData[16];
-        memcpy(insertData, "tEXt", 4);
-        memcpy(insertData + 4, (unsigned char *)&modelIndex, 4);
-        memcpy(insertData + 8, (unsigned char *)&oldW, 4);
-        memcpy(insertData + 12, (unsigned char *)&oldH, 4);
-        
-        unsigned int crc = crc32((const unsigned char *)insertData, 16);
-        ReverseBytes(crc);
-
-        memcpy(((unsigned char *)out + start), (unsigned char*)&extSize, 4);
-        memcpy(((unsigned char*)out + start + 4), insertData, 16);
-        memcpy(((unsigned char*)out + start + 4 + 16), (unsigned char *)&crc, 4);
-        stream->Read(((unsigned char*)out + start + 8 + 16), end, &written);
     }
     if (scale) scale->Release();
     if (bitmap2) bitmap2->Release();
@@ -232,7 +208,7 @@ RETURN:
 
     return ret;
 }
-int wic_encode_jpeg_image_to_data(int w, int h, int c, void* bgrdata, void *& out, unsigned long & outSize, unsigned long modelIndex, unsigned long toW, unsigned long toH, unsigned long oldW, unsigned long oldH)
+int wic_encode_jpeg_image_to_data(int w, int h, int c, void* bgrdata, void *& out, int & outSize, unsigned long modelIndex, unsigned long toW, unsigned long toH, unsigned long oldW, unsigned long oldH)
 {
     // assert c == 3
 
@@ -322,34 +298,12 @@ RETURN:
         ULARGE_INTEGER uli = sts.cbSize;
         LARGE_INTEGER zero;
         zero.QuadPart = 0;
-        unsigned long outSize2 = (ULONG)uli.QuadPart;
-
-        int insertSize = 12;
-        int modelSize = insertSize + 4;
-        out = malloc(outSize2 + modelSize);
-        outSize = outSize2 + modelSize;
-
-        unsigned long start = 20;
-        unsigned long end = outSize2 - start;
-
+        outSize = (ULONG)uli.QuadPart;
+        
+        out = malloc(outSize);
         ULONG written;
         stream->Seek(zero, STREAM_SEEK_SET, NULL);
-        stream->Read(out, start, &written);
-
-        UINT16 modelSize2 = insertSize + 2;
-        ReverseBytes(modelSize2);
-
-        unsigned char insertData[12];
-        memcpy(insertData, (unsigned char*)&modelIndex, 4);
-        memcpy(insertData + 4, (unsigned char*)&oldW, 4);
-        memcpy(insertData + 8, (unsigned char*)&oldH, 4);
-
-        UINT16 head = 0xfeff;
-
-        memcpy(((unsigned char*)out + start), (unsigned char*)&head, 2);
-        memcpy(((unsigned char*)out + start + 2), (unsigned char*)&modelSize2, 2);
-        memcpy(((unsigned char*)out + start + 4), insertData, insertSize);
-        stream->Read(((unsigned char*)out + start + 4 + insertSize), end, &written);
+        stream->Read(out, outSize, &written);
     }
     if (scale) scale->Release();
     if (bitmap2) bitmap2->Release();

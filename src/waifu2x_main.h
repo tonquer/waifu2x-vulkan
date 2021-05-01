@@ -10,12 +10,17 @@
 #include "cpu.h"
 #include "gpu.h"
 #include "platform.h"
-#include <comutil.h> 
-#pragma comment(lib, "comsuppw.lib")
+#if _WIN32
+    #include <comutil.h> 
+    #pragma comment(lib, "comsuppw.lib")
+#endif
 #include "waifu2x.h"
 #include <time.h>
 #include "filesystem_utils.h"
 
+enum Waifu2xError {
+    NotModel = -20,
+};
 
 class Task
 {
@@ -42,7 +47,7 @@ public:
     clock_t procTick;
     clock_t saveTick;
     void* out = 0;
-    unsigned long outSize = 0;
+    int outSize = 0;
 };
 
 class TaskQueue
@@ -144,16 +149,44 @@ private:
 int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale);
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout);
 int waifu2x_init();
-int waifu2x_init_set(int gpuId2, int threadNum, const char * model);
+int waifu2x_init_set(int gpuId2, int threadNum);
 int waifu2x_stop();
 int waifu2x_clear();
 int waifu2x_remove(std::set<int>&);
 
 static int GpuId;
 static int TotalJobsProc = 0;
+static int NumThreads = 1;
 static std::vector<ncnn::Thread*> ProcThreads;
 static std::vector<Waifu2x*> Waifu2xList;
 static int TaskId = 1;
+
+class WriteData
+{
+public:
+    int size = 0;
+    int writeSize = 0;
+    void *data = NULL;
+    WriteData(int h, int w, int n)
+    {
+
+        size = h*w*n;
+        data = malloc(size);
+    }
+    ~WriteData()
+    {
+        free(data);
+        data = NULL;
+    }
+
+
+};
+static void write_jpg_to_mem(void *writeData, void *data, int size)
+{
+    WriteData *write = static_cast<WriteData *>(writeData);
+    memcpy((unsigned char *)write->data + write->writeSize, data, size);
+    write->writeSize += size;
+}
 
 
 #endif // WAIFU2X_MAIN_H

@@ -1,5 +1,25 @@
 #include "waifu2x_main.h"
+
+#if _WIN32
+// image decoder and encoder with wic
 #include "wic_image.h"
+#else // _WIN32
+// image decoder and encoder with stb
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_NO_PSD
+#define STBI_NO_TGA
+#define STBI_NO_GIF
+#define STBI_NO_HDR
+#define STBI_NO_PIC
+#define STBI_NO_STDIO
+#include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize.h"
+
+#endif // _WIN32
+
 #include "webp_image.h"
 #include <cmath>
 
@@ -17,6 +37,10 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     if (v.id == -233)
         return -1;
     callBack = v.callBack;
+    if (v.fileDate) {
+        free(v.fileDate);
+        v.fileDate = NULL;
+    }
     if (!v.isSuc) {
         return v.id;
     }
@@ -24,16 +48,11 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     outSize = v.outSize;
 
     v.out = NULL;
-    const char* name;
-    if (GpuId >= 0)
-        name = ncnn::get_gpu_info(GpuId).device_name();
-    else
-        name = "cpu";
-    //fprintf(stdout, "gpu%d:%s, end encode imageId :%d, h:%d, w:%d, encode:%f, proc:%f\n, decode:%f",
-    //    GpuId, name, v.id, v.callBack, v.toH, v.toW,
-    //    (double)(v.encodeTick - v.startTick) / CLOCKS_PER_SEC,
-    //    (double)(v.procTick - v.encodeTick) / CLOCKS_PER_SEC,
-    //    (double)(v.saveTick - v.procTick) / CLOCKS_PER_SEC);
+    fprintf(stdout, "[waifu2x] end encode imageId :%d, encode:%f, proc:%f, decode:%f, \n",
+        v.callBack, (double)(v.encodeTick - v.startTick) / CLOCKS_PER_SEC,
+        (double)(v.procTick - v.encodeTick) / CLOCKS_PER_SEC,
+        (double)(v.saveTick - v.procTick) / CLOCKS_PER_SEC);
+    tick = (double)(v.saveTick - v.startTick) / CLOCKS_PER_SEC;
     return v.id;
 }
 
@@ -62,9 +81,33 @@ void* waifu2x_proc(void* args)
         int w;
         int h;
         int c;
-
+#if _WIN32
         pixeldata = wic_decode_image_by_data((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c);
-        if (v.fileDate) { free(v.fileDate); v.fileDate = NULL; }
+#else // _WIN32
+        pixeldata = stbi_load_from_memory((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c, 0);
+        if (pixeldata)
+        {
+            // stb_image auto channel
+            if (c == 1)
+            {
+                // grayscale -> rgb
+                stbi_image_free(pixeldata);
+                pixeldata = stbi_load_from_memory((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c, 3);
+                c = 3;
+            }
+            else if (c == 2)
+            {
+                // grayscale + alpha -> rgba
+                stbi_image_free(pixeldata);
+                pixeldata = stbi_load_from_memory((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c, 4);
+                c = 4;
+            }
+        }
+#endif // _WIN32
+        if (v.fileDate) { 
+            free(v.fileDate); 
+            v.fileDate = NULL; 
+        }
         if (waifu2x && pixeldata)
         {
             v.inimage = ncnn::Mat(w, h, (void*)pixeldata, (size_t)c, c);
@@ -83,48 +126,117 @@ void* waifu2x_proc(void* args)
             int scale_run_count = 1;
             if (v.toH > 0 && v.toW > 0 && h > 0 && w > 0)
             {
-                scale_run_count = std::max(int((v.toW -1)/ w), scale_run_count);
-                scale_run_count = std::max(int((v.toH -1)/ h), scale_run_count);
-                scale_run_count = ceil(sqrt(scale_run_count));
+                scale_run_count = std::max(int(v.toW/ w), scale_run_count);
+                scale_run_count = std::max(int(v.toH/ h), scale_run_count);
+                scale_run_count = ceil(log(scale_run_count)/log(2));
+                scale_run_count = std::max(scale_run_count, 1);
             }
 
-            v.outimage = ncnn::Mat(w * waifu2x->scale * scale_run_count, h * waifu2x->scale * scale_run_count, (size_t)c, c);
+            const char* name;
+            if (GpuId >= 0)
+                name = ncnn::get_gpu_info(GpuId).device_name();
+            else
+                name = "cpu";
+
+
+            int toW = w * pow(waifu2x->scale, scale_run_count);
+            int toH = h * pow(waifu2x->scale, scale_run_count);
+            fprintf(stdout, "[waifu2x] start encode imageId :%d, count:%d, gpu:%s, h:%d->%d, w:%d->%d, model:%s, noise:%d, scale:%d, tta:%d\n",
+                v.callBack, scale_run_count, name, v.inimage.h, toH, v.inimage.w, toW, waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, waifu2x->tta_mode);
+            v.outimage = ncnn::Mat(toW, toH, (size_t)c, c);
 
             for (int i = 0; i < scale_run_count; i++)
             {
                 if (i == scale_run_count - 1)
                 {
+                    fprintf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
+                        v.callBack, i + 1, v.inimage.h, v.outimage.h, v.inimage.w, v.outimage.w);
                     waifu2x->process(v.inimage, v.outimage);
                     v.inimage.release();
                 }
                 else
                 {
                     ncnn::Mat tmpimage(v.inimage.w * 2, v.inimage.h * 2, (size_t)v.inimage.elemsize, (int)v.inimage.elemsize);
+                    fprintf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
+                        v.callBack, i + 1, v.inimage.h, tmpimage.h, v.inimage.w, tmpimage.w);
                     waifu2x->process(v.inimage, tmpimage);
+                    v.inimage.release();
                     v.inimage = tmpimage;
                 }
             }
+#if _WIN32
+            if (pixeldata) { free(pixeldata); pixeldata = NULL; };
+#else
+            if (pixeldata) stbi_image_free(pixeldata);
+#endif
             v.procTick = clock();
 
             int success = 0;
             if (!v.file.compare("png") || !v.file.compare("PNG"))
             {
-                success = wic_encode_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
+                #if _WIN32
+                    success = wic_encode_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
+                #else
+                {
+                    auto *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
+                    stbir_resize((unsigned char *)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
+                                STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+                                STBIR_FILTER_BOX, STBIR_FILTER_BOX,
+                                STBIR_COLORSPACE_SRGB, nullptr
+                    ); 
+                    v.out = stbi_write_png_to_mem(odata, 0, v.toW, v.toH, v.outimage.elempack, &v.outSize);
+                    success = (v.out != nullptr);
+                    stbi_image_free(odata);
+                } 
+                #endif
             }
             else if (!v.file.compare("jpg") || !v.file.compare("JPG") || !v.file.compare("jpeg") || !v.file.compare("JPEG"))
             {
-                success = wic_encode_jpeg_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
+                #if _WIN32
+                    success = wic_encode_jpeg_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
+                #else
+                {
+                    auto *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
+                    stbir_resize((unsigned char *)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
+                                STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+                                STBIR_FILTER_BOX, STBIR_FILTER_BOX,
+                                STBIR_COLORSPACE_SRGB, nullptr
+                    );
+                    WriteData data(v.toH, v.toW, v.outimage.elempack);
+                    stbi_write_jpg_to_func((stbi_write_func *)write_jpg_to_mem, (void *)&data, v.toW, v.toH,  v.outimage.elempack, odata, 100);
+                    stbi_image_free(odata);
+                    if (data.writeSize > 0)
+                    {
+                        success = true;
+                        v.out = malloc(data.writeSize);
+                        v.outSize = data.writeSize;
+                        memcpy(v.out, data.data, v.outSize);
+                    }else{
+                        success = false;
+                    }
+                    
+                }
+                #endif
             }
+            v.outimage.release();
             if (success)
             {
             }
             else
-                fwprintf(stderr, L"encode image %ls failed\n", v.outpath.c_str());
+            #if _WIN32
+                fwprintf(stderr, L"[waifu2x] encode image %ls failed\n", v.outpath.c_str());
+            #else // _WIN32
+                fprintf(stderr, "[waifu2x] encode image %d failed\n", v.id);
+            #endif // _WIN32
             v.saveTick = clock();
         }
         else
         {
-            fwprintf(stderr, L"decode image failed\n");
+            #if _WIN32
+                fwprintf(stderr, L"[waifu2x] decode image failed\n");
+            #else // _WIN32
+                fprintf(stderr, "[waifu2x] decode image failed\n");
+            #endif // _WIN32            
             v.isSuc = false;
         }
         Tosave.put(v);
@@ -133,24 +245,35 @@ void* waifu2x_proc(void* args)
     return 0;
 }
 
-int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int num_threads, const char * setModel)
+int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int num_threads, int index)
 {
     char parampath[256];
     char modelpath[256];
-    Waifu2xList.push_back(NULL);
-    int index = Waifu2xList.size() - 1;
-    if (setModel && strcmp(name, "models-cunet"))
-        return 0;
+    // Waifu2xList.push_back(NULL);
+    if (scale2 == 2) {
 
-    if (noise2 == -1)
-    {
-        sprintf(parampath, "models/%s/scale2.0x_model.param", name);
-        sprintf(modelpath, "models/%s/scale2.0x_model.bin", name);
+        if (noise2 == -1)
+        {
+            sprintf(parampath, "models/%s/scale2.0x_model.param", name);
+            sprintf(modelpath, "models/%s/scale2.0x_model.bin", name);
+        }
+        else
+        {
+            sprintf(parampath, "models/%s/noise%d_scale2.0x_model.param", name, noise2);
+            sprintf(modelpath, "models/%s/noise%d_scale2.0x_model.bin", name, noise2);
+        }
     }
-    else
-    {
-        sprintf(parampath, "models/%s/noise%d_scale2.0x_model.param", name, noise2);
-        sprintf(modelpath, "models/%s/noise%d_scale2.0x_model.bin", name, noise2);
+    else if (scale2 == 1) {
+        if (noise2 == -1)
+        {
+            sprintf(parampath, "models/%s/noise0_model.param", name);
+            sprintf(modelpath, "models/%s/noise0_model.bin", name);
+        }
+        else
+        {
+            sprintf(parampath, "models/%s/noise%d_model.param", name, noise2);
+            sprintf(modelpath, "models/%s/noise%d_model.bin", name, noise2);
+        }
     }
     int prepadding = 18;
     int tilesize = 0;
@@ -210,21 +333,25 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
 
     if (stat(parampath, &buffer) != 0)
     {
-        fprintf(stderr, "not found path %s\n", parampath);
-        return -1;
+        fprintf(stderr, "[waifu2x] not found path %s\n", parampath);
+        return Waifu2xError::NotModel;
     }
     if (stat(modelpath, &buffer) != 0)
     {
-        fprintf(stderr, "not found path %s\n", modelpath);
-        return -1;
+        fprintf(stderr, "[waifu2x] not found path %s\n", modelpath);
+        return Waifu2xError::NotModel;
     }
-    //fprintf(stdout, "init model path %s\n", modelpath);
+#if _WIN32
     _bstr_t t1 = parampath;
     std::wstring paramfullpath((wchar_t*)t1);
 
     _bstr_t t2 = modelpath;
     std::wstring modelfullpath((wchar_t*)t2);
-    Waifu2x* waifu = new Waifu2x(GpuId, tta_mode, num_threads);
+#else
+    std::string paramfullpath(parampath);
+    std::string modelfullpath(modelpath);
+#endif
+    Waifu2x* waifu = new Waifu2x(GpuId, tta_mode, num_threads, name);
     waifu->load(paramfullpath, modelfullpath);
     waifu->noise = noise2;
     waifu->scale = scale2;
@@ -242,15 +369,25 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
 
 int waifu2x_init()
 {
+#if _WIN32
     CoInitializeEx(NULL, COINIT_MULTITHREADED);
-    ncnn::create_gpu_instance();
-    return 0;
+#endif
+
+    return ncnn::create_gpu_instance();
 }
 
-int waifu2x_init_set(int gpuId2, int threadNum, const char *setModel)
+int waifu2x_init_set(int gpuId2, int threadNum)
 {
-    if (gpuId2 < -1 || gpuId2 >  2) { fwprintf(stderr, L"gpuId error\n"); return -1; };
-    if (threadNum <= 0 || threadNum > 32) { fwprintf(stderr, L"threadNum error\n"); return -1; };
+    if (gpuId2 < -1 || gpuId2 >  2) { 
+        #if _WIN32
+            fwprintf(stderr, L"[waifu2x] gpuId error\n"); 
+        #else // _WIN32
+            fprintf(stderr, "[waifu2x] gpuId error\n"); 
+        #endif // _WIN32
+        
+        return -1; 
+    };
+    if (threadNum <= 0 || threadNum > 32) { return -1; };
 
     int jobs_proc = threadNum;
 
@@ -259,7 +396,7 @@ int waifu2x_init_set(int gpuId2, int threadNum, const char *setModel)
     int gpu_count = ncnn::get_gpu_count();
     if (gpuId2 < -1 || gpuId2 >= gpu_count)
     {
-        fprintf(stderr, "invalid gpu device\n");
+        fprintf(stderr, "[waifu2x] invalid gpu device\n");
         ncnn::destroy_gpu_instance();
         return -1;
     }
@@ -274,8 +411,8 @@ int waifu2x_init_set(int gpuId2, int threadNum, const char *setModel)
         jobs_proc = std::min(jobs_proc, gpu_queue_count);
         TotalJobsProc += jobs_proc;
     }
-
-    int num_threads = gpuId2 == -1 ? jobs_proc : 1;
+    
+    NumThreads = gpuId2 == -1 ? jobs_proc : 1;
     int index = 0;
     std::string models[3] = { "models-cunet", "models-upconv_7_anime_style_art_rgb", "models-upconv_7_photo" };
     for (int i = 0; i < 3; i++)
@@ -283,11 +420,17 @@ int waifu2x_init_set(int gpuId2, int threadNum, const char *setModel)
         std::string name = models[i];
         for (int j = -1; j <= 3; j++)
         {
-            if (waifu2x_addModel(name.c_str(), 2, j, true, num_threads, setModel) < 0) { return -1; };
-            if (waifu2x_addModel(name.c_str(), 2, j, false, num_threads, setModel) < 0) { return -1; };
+            Waifu2xList.push_back(NULL);
+            Waifu2xList.push_back(NULL);
+            //if (waifu2x_addModel(name.c_str(), 2, j, true, NumThreads, setModel) < 0) { return -1; };
+            //if (waifu2x_addModel(name.c_str(), 2, j, false, NumThreads, setModel) < 0) { return -1; };
         }
     }
-
+    for (int i = -1; i <= 3; i++)
+    {
+        Waifu2xList.push_back(NULL);
+        Waifu2xList.push_back(NULL);
+    }
     // waifu2x proc
     ProcThreads.resize(TotalJobsProc);
     {
@@ -309,6 +452,47 @@ int waifu2x_init_set(int gpuId2, int threadNum, const char *setModel)
     return 0;
 }
 
+int waifu2x_check_init_model(int initModel)
+{
+    if (initModel < 0 || initModel >= Waifu2xList.size())
+    {
+        return Waifu2xError::NotModel;
+    }
+    if (Waifu2xList[initModel])
+    {
+        return 1;
+    }
+    int index = 0;
+    std::string models[3] = { "models-cunet", "models-upconv_7_anime_style_art_rgb", "models-upconv_7_photo" };
+    for (int i = 0; i < 3; i++)
+    {
+        std::string name = models[i];
+        for (int j = -1; j <= 3; j++)
+        {
+            if (index == initModel) {
+                return waifu2x_addModel(name.c_str(), 2, j, false, NumThreads, index);
+            }
+            index += 1;
+            if (index == initModel){
+                return waifu2x_addModel(name.c_str(), 2, j, true, NumThreads, index);
+            }
+            index += 1;
+        }
+    }
+    for (int j = -1; j <= 3; j++)
+    {
+        if (index == initModel) {
+            return waifu2x_addModel("models-cunet", 1, j, false, NumThreads, index);
+        }
+        index ++ ;
+        if (index == initModel) {
+            return waifu2x_addModel("models-cunet", 1, j, true, NumThreads, index);
+        }
+        index++;
+    }
+    return 1;
+}
+
 
 int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale)
 {
@@ -324,6 +508,10 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
     v.scale = scale;
     if ((toH <= 0 || toW <= 0) && scale <= 0)
         return -1;
+    int sts = waifu2x_check_init_model(modelIndex);
+    if (sts < 0)
+        return sts;
+
     if (format) v.file = format;
     Toproc.put(v);
     return TaskId;

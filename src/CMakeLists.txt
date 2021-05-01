@@ -26,7 +26,6 @@ if(OPENMP_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
-
 # enable global link time optimization
 cmake_policy(SET CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
@@ -207,7 +206,6 @@ if(NOT USE_SYSTEM_WEBP)
 endif()
 
 add_library(waifu2x SHARED waifu2x_main.cpp waifu2x.cpp waifu2x_py.cpp )
-
 set(WAIFU2X_LINK_LIBRARIES ncnn webp ${Vulkan_LIBRARY} ${PYTHON_LIBRARY})
 
 if(USE_STATIC_MOLTENVK)

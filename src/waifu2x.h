@@ -13,7 +13,7 @@
 class Waifu2x
 {
 public:
-    Waifu2x(int gpuid, bool tta_mode = false, int num_threads = 1);
+    Waifu2x(int gpuid, bool tta_mode = false, int num_threads = 1, const char* name=NULL);
     ~Waifu2x();
 
 #if _WIN32
@@ -32,6 +32,8 @@ public:
     int scale;
     int tilesize;
     int prepadding;
+    bool tta_mode;
+    std::string mode_name;
 
 private:
     ncnn::VulkanDevice* vkdev;
@@ -39,7 +41,6 @@ private:
     ncnn::Pipeline* waifu2x_preproc;
     ncnn::Pipeline* waifu2x_postproc;
     ncnn::Layer* bicubic_2x;
-    bool tta_mode;
 };
 
 #endif // WAIFU2X_H

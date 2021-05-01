@@ -10,7 +10,7 @@
 #include "waifu2x_preproc_tta.comp.hex.h"
 #include "waifu2x_postproc_tta.comp.hex.h"
 
-Waifu2x::Waifu2x(int gpuid, bool _tta_mode, int num_threads)
+Waifu2x::Waifu2x(int gpuid, bool _tta_mode, int num_threads, const char* name)
 {
     vkdev = gpuid == -1 ? 0 : ncnn::get_gpu_device(gpuid);
 
@@ -20,6 +20,7 @@ Waifu2x::Waifu2x(int gpuid, bool _tta_mode, int num_threads)
     waifu2x_postproc = 0;
     bicubic_2x = 0;
     tta_mode = _tta_mode;
+    mode_name = name;
 }
 
 Waifu2x::~Waifu2x()
