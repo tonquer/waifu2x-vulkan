@@ -1,16 +1,17 @@
 # waifu2x-ncnn-vulkan-python
-这是修改了waifu2x-ncnn-vulkan项目，导出pyd和so文件给python使用
-支持Linux和Windows
+- 这是修改了waifu2x-ncnn-vulkan项目，导出pyd和so文件给python使用
+- 支持Linux和Windows
+- 只支持jpg和png图
 
 ## 在Python中使用
-将生成的waifu.pyd放入代码目录或者python安装DLLs目录
+- 将生成的waifu.pyd放入代码目录或者python安装DLLs目录
 ```shell
 import waifu2x
 ```
 
 ## 示例
-使用该项目和Qt实现的waifu2x,GUI小工具，[waifu2x-GUI]（https://github.com/tonquer/waifu2x-ncnn-vulkan-GUI）
-请看test中的示例
+- 使用该项目和Qt实现的waifu2x,GUI小工具，[waifu2x-GUI]（https://github.com/tonquer/waifu2x-ncnn-vulkan-GUI）
+- 请看test中的示例
 
 ## 编译（Windows）
 1. 下载安装VulkanSDK https://vulkan.lunarg.com/sdk/home
