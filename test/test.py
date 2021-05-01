@@ -5,7 +5,7 @@ import time
 if __name__ == "__main__":
     waifu2x.init()
     print(waifu2x.getGpuInfo())
-    waifu2x.initSet(0, 1, model="models-cunet")
+    waifu2x.initSet(0, 1)
     f = open("0.jpg", "rb")
     data = f.read()
     f.close()
