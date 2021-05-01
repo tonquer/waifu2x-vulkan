@@ -44,18 +44,18 @@ cmake --build .. -j 4 --config Release
   make
   ```
 4. git克隆代码，编译ncnn和libweb，如有报错请解决错误再往下编译
-    ```shell
-    git clone https://github.com/tonquer/waifu2x-ncnn-vulkan-python.git
-    cd waifu2x-ncnn-vulkan-python
-    git submodule update --init --recursive
-    sh build.sh
-    ```
+  ```shell
+  git clone https://github.com/tonquer/waifu2x-ncnn-vulkan-python.git
+  cd waifu2x-ncnn-vulkan-python
+  git submodule update --init --recursive
+  sh build.sh
+  ```
 5. 编译waifu2x-ncnn-vulkan-python, 编辑build_waifu2x.sh，把Python目录改为，你编译好的python目录
-    ```shell
-    vim build_waifu2x  
-    sh build_waifu2x.sh
-    ```
+  ```shell
+  vim build_waifu2x  
+  sh build_waifu2x.sh
+  ```
 6. 成功后会生成waifu2x.so, 把该文件放入到你的项目目录
-    ```python 
-    import waifu2x
-    ```
+  ```python 
+  import waifu2x
+  ```
