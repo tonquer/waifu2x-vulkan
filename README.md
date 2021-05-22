@@ -1,6 +1,6 @@
 # waifu2x-ncnn-vulkan-python
 - 这是修改了waifu2x-ncnn-vulkan项目，导出pyd和so文件给python使用
-- 支持Linux和Windows
+- 支持Linux和Windows (更新: 现已支持 macOS)
 - 只支持jpg和png图
 
 ## 在Python中使用
@@ -30,7 +30,13 @@ cmake ../src -DPYTHON_INCLUDE_DIR=C:\Python37\include -DPYTHON_LIBRARY=C:\Python
 cmake --build .. -j 4 --config Release
 ```
 5. 成功后在build/Release目录，将waifu2x.dll改名waifu2x.pyd，即可使用
-
+## 编译 (macOS)
+1. 安装 Xcode 和命令行工具
+2. 确保 CMake 已安装
+* Btw, 支持交叉编译 arm Mac (虽然是 dirty hack(((
+```bash
+bash build_mac.sh
+```
 ## 编译（Linux）（由于cmake错误没解决，只能手动编译）
 1. 安装依赖
   ``` sheel
