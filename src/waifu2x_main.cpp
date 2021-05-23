@@ -407,8 +407,6 @@ int waifu2x_init_set(int gpuId2, int threadNum)
     }
     else
     {
-        int gpu_queue_count = ncnn::get_gpu_info(gpuId2).compute_queue_count();
-        jobs_proc = std::min(jobs_proc, gpu_queue_count);
         TotalJobsProc += jobs_proc;
     }
     
