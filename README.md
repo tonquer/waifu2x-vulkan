@@ -1,6 +1,6 @@
 # waifu2x-ncnn-vulkan-python
 - 这是修改了waifu2x-ncnn-vulkan项目，导出pyd和so文件给python使用
-- 支持Linux和Windows (更新: 现已支持 macOS)
+- 支持Linux和Windows (现已支持 macOS)
 - 只支持jpg和png图
 
 ## 在Python中使用
@@ -31,12 +31,29 @@ cmake --build .. -j 4 --config Release
 ```
 5. 成功后在build/Release目录，将waifu2x.dll改名waifu2x.pyd，即可使用
 ## 编译 (macOS)
-1. 安装 Xcode 和命令行工具
+1. 安装 [Xcode 12.4 及其命令行工具 (官方)](https://developer.apple.com/download/more/?name=Xcode%2012.4) ,安装后自带双架构 Python 3.8.2, 下载时需登录 iCloud 账号
 2. 确保 CMake 已安装
-* Btw, 支持交叉编译 arm Mac (虽然是 dirty hack(((
+3. 克隆本仓库
+````bash
+git clone https://github.com/zijianjiao2017/waifu2x-ncnn-vulkan-python && cd waifu2x-ncnn-vulkan-python
+git submodule update --init --recursive
+````
+4. 执行编译脚本
 ```bash
 bash build_mac.sh
 ```
+* 支持交叉编译 arm64
+* 如果在 import waifu2x 时出现 Segfault 需要在编译前 unlink 由 Homebrew 安装的 Python 3.x:
+````bash
+brew unlink python@3.8
+brew unlink python@3.9
+export PATH=$DEVELOPER_DIR/Library/Frameworks/Python3.framework/Versions/3.8/bin:$PATH
+hash -r
+````
+* 如果在项目中使用了 waifu2x, 并且在 pyinstaller 打包后突然出现找不到依赖的 dylib 时, 尝试进行:
+````bash
+install_name_tool -change @rpath/Python3.framework/Versions/3.8/Python3 @loader_path/Python3 waifu2x.so
+````
 ## 编译（Linux）（由于cmake错误没解决，只能手动编译）
 1. 安装依赖
   ``` sheel
