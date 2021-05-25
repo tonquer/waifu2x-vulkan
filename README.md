@@ -50,6 +50,10 @@ brew unlink python@3.9
 export PATH=$DEVELOPER_DIR/Library/Frameworks/Python3.framework/Versions/3.8/bin:$PATH
 hash -r
 ````
+* 如果在项目中使用了 waifu2x, 并且在 pyinstaller 打包后突然出现找不到依赖的 dylib 时, 尝试进行:
+````bash
+install_name_tool -change @rpath/Python3.framework/Versions/3.8/Python3 @loader_path/Python3 waifu2x.so
+````
 ## 编译（Linux）（由于cmake错误没解决，只能手动编译）
 1. 安装依赖
   ``` sheel
