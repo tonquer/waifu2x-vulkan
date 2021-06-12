@@ -199,7 +199,7 @@ waifu2x_py_load(PyObject* self, PyObject* args)
 static PyObject*
 waifu2x_py_stop(PyObject* self, PyObject* args)
 {
-    if (IsInit)
+    if (!IsInit)
     {
         return PyLong_FromLong(0);
     }
