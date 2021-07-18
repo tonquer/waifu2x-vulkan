@@ -317,4 +317,75 @@ RETURN:
     return ret;
 }
 
+unsigned char* wic_decode_bmp_by_data(unsigned char* fileDate, int fileSize, int &w, int &h, int &c)
+{
+    w = *reinterpret_cast<unsigned int*>(fileDate + 18);
+    h = *reinterpret_cast<unsigned int*>(fileDate + 22);
+    c = *reinterpret_cast<unsigned short int*>(fileDate + 28) / 8;
+    int pad = 0;
+    if (c <= 3) {
+        pad = (-w * 3) & 3;
+    }
+    unsigned char* out = (unsigned char*)malloc(w * h * c);
+    for (int y = 0; y < h; y++)
+    {
+        const unsigned char* ptr = (unsigned char*)fileDate + 54 + (y * w * c + y * pad);
+        unsigned char* bgrptr = (unsigned char*)out + y * w * c;
+        memcpy(bgrptr, ptr, w * c);
+    }
+    return out;
+}
+
+int wic_encode_bmp_image_to_data(int w, int h, int c, void* bgrdata, void*& out, int& outSize)
+{
+    int picSize = (w * c * 8 + 31) / 32 * 4 * h;
+    outSize = picSize + 54;
+    if (!bgrdata)
+        return -1;
+
+    out = malloc(outSize);
+    if (!out)
+        return -1;
+
+    char head[14] = "BM";
+    char head2[40];
+    memset(head2, 0, 40);
+
+    int zero = 0;
+    int headTotalSize = 54;
+    int head2Szie = 40;
+    short int biPlanes = 1;
+    short int bitNum = c * 8;
+
+    memcpy((unsigned char*)head + 2, (unsigned char*)&outSize, 4);
+    memcpy((unsigned char*)head + 6, (unsigned char*)&zero, 4);
+    memcpy((unsigned char*)head + 10, (unsigned char*)&headTotalSize, 4);
+
+    memcpy((unsigned char*)head2, (unsigned char*)&head2Szie, 4);
+    memcpy((unsigned char*)head2+4, (unsigned char*)&w, 4);
+    memcpy((unsigned char*)head2+8, (unsigned char*)&h, 4);
+    memcpy((unsigned char*)head2+12, (unsigned char*)&biPlanes, 2);
+    memcpy((unsigned char*)head2+14, (unsigned char*)&bitNum, 2);
+    memcpy((unsigned char*)head2+20, (unsigned char*)&picSize, 4);
+
+    memcpy((unsigned char*)out, &head, 14);
+    memcpy((unsigned char*)out+14, &head2, 40);
+    //memcpy((unsigned char*)out+ 54, bgrdata, picSize);
+    int pad = 0;
+    if (c <= 3) {
+        pad = (-w * 3) & 3;
+    }
+    for (int y = 0; y < h; y++)
+    {
+        const unsigned char* ptr = (unsigned char *)bgrdata + y * w * c;
+        unsigned char* bgrptr = (unsigned char*)out + 54 + (y * w * c + y*pad);
+        memcpy(bgrptr, ptr, w * c);
+        if (pad > 0)
+        {
+            memcpy(bgrptr + w*c, &zero, pad);
+        }
+    }
+    return 1;
+}
+
 #endif // WIC_IMAGE_H

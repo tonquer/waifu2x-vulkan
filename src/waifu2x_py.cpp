@@ -90,7 +90,36 @@ waifu2x_py_clear(PyObject* self, PyObject* args)
 }
 
 static PyObject*
-waifu2x_py_delete(PyObject* self, PyObject* args)
+waifu2x_py_remove_wait(PyObject* self, PyObject* args)
+{
+    if (!IsInitSet)
+    {
+        Py_RETURN_NONE;
+    }
+    PyObject* bufobj;
+    if (!PyArg_ParseTuple(args, "O", &bufobj)) {
+        Py_RETURN_NONE;
+    }
+    int list_len = PyObject_Size(bufobj);
+    if (list_len <= 0)
+    {
+        Py_RETURN_NONE;
+    }
+    std::set<int> taskIds;
+    PyObject* list_item = NULL;
+    int taskId;
+    for (int i = 0; i < list_len; i++)
+    {
+        list_item = PyList_GetItem(bufobj, i);
+        PyArg_Parse(list_item, "i", &taskId);
+        taskIds.insert(taskId);
+    }
+    waifu2x_py_remove_wait(taskIds);
+    return PyLong_FromLong(0);
+}
+
+static PyObject*
+waifu2x_py_remove(PyObject* self, PyObject* args)
 {
     if (!IsInitSet)
     {
@@ -137,7 +166,7 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
     float scale = 0;
 
     char* kwarg_names[] = { "data","modelIndex","backId", "format", "width", "high", "scale", NULL };
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#ii|siif", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high, &scale))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#ii|siif", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high, &scale))
         return PyLong_FromLong(-2);
     //fprintf(stdout, "point:%p, size:%d, index:%d, back:%d, scale:%f \n", b, size, modelIndex, callBack, scale);
     if (!b)
@@ -216,28 +245,4 @@ waifu2x_py_version(PyObject* self, PyObject* args)
 {
     PyObject* data = Py_BuildValue("s", Version);
     return data;
-}
-
-
-static PyObject*
-waifu2x_py_test(PyObject* self, PyObject* args)
-{
-    const char* b = NULL;
-    unsigned int size;
-    int sts = 1;
-    int callBack;
-    int modelIndex = 0;
-    const char* format = NULL;
-    int width = 0;
-    int high = 0;
-    float scale = 0;
-    // char* kwarg_names[] = { "data","modelIndex","backId", "format", "width", "high", "scale", NULL };
-    if (!PyArg_ParseTuple(args, "y#ii", &b, &size, &modelIndex, &callBack))
-        return PyLong_FromLong(-2);
-    fprintf(stdout, "point:%p, size:%d, index:%d, back:%d, scale:%f \n", b, size, modelIndex, callBack, scale);
-    if (!b)
-    {
-        return PyLong_FromLong(-3);
-    }
-    return PyLong_FromLong(1);
 }

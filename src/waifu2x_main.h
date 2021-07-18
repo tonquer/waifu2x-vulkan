@@ -152,6 +152,7 @@ int waifu2x_init();
 int waifu2x_init_set(int gpuId2, int threadNum);
 int waifu2x_stop();
 int waifu2x_clear();
+int waifu2x_py_remove_wait(std::set<int>&);
 int waifu2x_remove(std::set<int>&);
 
 static int GpuId;

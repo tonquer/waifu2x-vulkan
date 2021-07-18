@@ -19,7 +19,10 @@ static PyObject*
 waifu2x_py_clear (PyObject* self, PyObject* args);
 
 static PyObject*
-waifu2x_py_delete(PyObject* self, PyObject* args);
+waifu2x_py_remove_wait(PyObject* self, PyObject* args);
+
+static PyObject*
+waifu2x_py_remove(PyObject* self, PyObject* args);
 
 static PyObject*
 waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs);
@@ -34,9 +37,6 @@ static PyObject*
 waifu2x_py_version(PyObject* self, PyObject* args);
 
 static PyObject*
-waifu2x_py_test(PyObject* self, PyObject* args);
-
-static PyObject*
 waifu2x_py_get_info(PyObject* self, PyObject* args);
 
 PyMODINIT_FUNC
@@ -44,25 +44,25 @@ PyInit_waifu2x(void);
 
 static PyMethodDef SpamMethods[] = {
     {"init",  waifu2x_py_init, METH_VARARGS,
-     "Execute a shell command."},
+     "init ncnn"},
     {"initSet",  (PyCFunction)waifu2x_py_init_set, METH_VARARGS | METH_KEYWORDS,
-     "Execute a shell command."},
+     "init setting"},
     {"add",  (PyCFunction)waifu2x_py_add, METH_VARARGS | METH_KEYWORDS,
-     "Execute a shell command."},
-    {"getGpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
-     "Execute a shell command."},
-    {"delete",  (PyCFunction)waifu2x_py_delete, METH_VARARGS,
-     "Execute a shell command."},
+     "add task"},
+    {"get_gpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
+     "get gpu list"},
+    {"remove",  (PyCFunction)waifu2x_py_remove, METH_VARARGS,
+     "delete all task"},
     {"clear",  (PyCFunction)waifu2x_py_clear, METH_VARARGS,
-     "Execute a shell command."},
+     "clear all queue"},
+    {"removeWaitProc",  (PyCFunction)waifu2x_py_remove_wait, METH_VARARGS,
+     "delete proc task"},
     {"load",  waifu2x_py_load, METH_VARARGS,
-     "Execute a shell command."},
+     "load a complete task"},
     {"stop",  waifu2x_py_stop, METH_VARARGS,
-     "Execute a shell command."},
+     "kill thread"},
     {"getVersion",  waifu2x_py_version, METH_VARARGS,
-     "Execute a shell command."},
-    {"test",  waifu2x_py_test, METH_VARARGS,
-     "Execute a shell command."},
+     "get version"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -77,5 +77,5 @@ static struct PyModuleDef spammodule = {
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "version: v1.0.0\ngit:https://github.com/tonquer/waifu2x-ncnn-vulkan-python \n";
+static const char* Version = "version: v1.0.1\ngit:https://github.com/tonquer/waifu2x-ncnn-vulkan-python \n";
 #endif 
