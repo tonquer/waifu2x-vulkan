@@ -575,7 +575,7 @@ int waifu2x_clear()
     return 0;
 }
 
-int waifu2x_py_remove_wait(std::set<int>& taskIds)
+int waifu2x_remove_wait(std::set<int>& taskIds)
 {
     Toproc.remove(taskIds);
     return 0;

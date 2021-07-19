@@ -114,7 +114,7 @@ waifu2x_py_remove_wait(PyObject* self, PyObject* args)
         PyArg_Parse(list_item, "i", &taskId);
         taskIds.insert(taskId);
     }
-    waifu2x_py_remove_wait(taskIds);
+    waifu2x_remove_wait(taskIds);
     return PyLong_FromLong(0);
 }
 
