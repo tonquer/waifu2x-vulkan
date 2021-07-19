@@ -49,7 +49,7 @@ static PyMethodDef SpamMethods[] = {
      "init setting"},
     {"add",  (PyCFunction)waifu2x_py_add, METH_VARARGS | METH_KEYWORDS,
      "add task"},
-    {"get_gpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
+    {"getGpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
      "get gpu list"},
     {"remove",  (PyCFunction)waifu2x_py_remove, METH_VARARGS,
      "delete all task"},
