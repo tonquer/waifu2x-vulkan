@@ -27,7 +27,7 @@ cmake -A x64 `
       -DNCNN_BUILD_EXAMPLES=OFF `
       -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
       -DPYBIND11_FINDPYTHON=OFF `
-      -DPYBIND11_PYTHON_VERSION='3.9.5' `
+      -DPYBIND11_PYTHON_VERSION='3.9.6' `
       ..\src
 Copy-Item -Verbose -Path "$($Env:pythonLocation + '\libs\python39.lib')" -Destination "$((Get-Location).Path)"
 cmake --build . --config Release -j 2

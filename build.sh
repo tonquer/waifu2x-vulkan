@@ -20,7 +20,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_BUILD_EXAMPLES=OFF \
       -DPYTHON_EXECUTABLE=/usr/bin/python3.9 \
       -DPYBIND11_FINDPYTHON=OFF \
-      -DPYBIND11_PYTHON_VERSION="3.9.5" \
+      -DPYBIND11_PYTHON_VERSION="3.9.6" \
       ../src
 cmake --build . -j 2
 cp libwaifu2x.so waifu2x.so
