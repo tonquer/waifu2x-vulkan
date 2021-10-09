@@ -39,6 +39,9 @@ rm -rf vulkansdk-macos-1.2.162.0/Applications
 find vulkansdk-macos-1.2.162.0 -type f | grep -v -E 'vulkan|glslang|MoltenVK' | xargs rm
 hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
 export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
+python3 -V
+which python3
+find /usr/local/Cellar -name "libpython*.a"
 VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
 PyVer=${Version:0:3}
 # Python
