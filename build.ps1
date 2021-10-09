@@ -26,19 +26,17 @@ cmake -A x64 `
       -DNCNN_BUILD_TOOLS=OFF `
       -DNCNN_BUILD_EXAMPLES=OFF `
       -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
-      -DPYBIND11_FINDPYTHON=OFF `
-      -DPYBIND11_PYTHON_VERSION='3.9.6' `
       ..\src
 Copy-Item -Verbose -Path "$($Env:pythonLocation + '\libs\python39.lib')" -Destination "$((Get-Location).Path)"
 cmake --build . --config Release -j 2
 Set-Location .\Release\
-Move-Item waifu2x.dll waifu2x.pyd
+Move-Item waifu2x_vulkan.dll waifu2x_vulkan.pyd
 
 # Package
 Set-Location .\..\..\
 mkdir "$($PACKAGENAME)"
 Copy-Item -Verbose -Path "README.md" -Destination "$($PACKAGENAME)"
 Copy-Item -Verbose -Path "LICENSE" -Destination "$($PACKAGENAME)"
-Copy-Item -Verbose -Path "build\Release\waifu2x.pyd" -Destination "$($PACKAGENAME)"
+Copy-Item -Verbose -Path "build\Release\waifu2x_vulkan.pyd" -Destination "$($PACKAGENAME)"
 Copy-Item -Verbose -Recurse -Path "models" -Destination "$($PACKAGENAME)"
 Copy-Item -Verbose -Recurse -Path "test" -Destination "$($PACKAGENAME)"

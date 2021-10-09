@@ -19,16 +19,14 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
       -DPYTHON_EXECUTABLE=/usr/bin/python3.9 \
-      -DPYBIND11_FINDPYTHON=OFF \
-      -DPYBIND11_PYTHON_VERSION="3.9.6" \
       ../src
 cmake --build . -j 2
-cp libwaifu2x.so waifu2x.so
-strip -x waifu2x.so
+cp libwaifu2x_vulkan.so waifu2x_vulkan.so
+strip -x waifu2x_vulkan.so
 
 # Package
 cd ..
 mkdir -p $PACKAGENAME
 cp README.md LICENSE $PACKAGENAME
-cp build/waifu2x.so $PACKAGENAME
+cp build/waifu2x_vulkan.so $PACKAGENAME
 cp -r models test $PACKAGENAME

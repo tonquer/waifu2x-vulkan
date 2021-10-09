@@ -152,6 +152,8 @@ int waifu2x_init();
 int waifu2x_init_set(int gpuId2, int threadNum);
 int waifu2x_stop();
 int waifu2x_clear();
+int waifu2x_set_debug(bool);
+int waifu2x_printf(void* p, const char* fmt, ...);
 int waifu2x_remove_wait(std::set<int>&);
 int waifu2x_remove(std::set<int>&);
 

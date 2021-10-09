@@ -1,5 +1,5 @@
-## 请把waifu2x.pyd和models目录放入到test目录下
-import waifu2x
+## waifu2x_vulkan.pyd和models目录放入到test目录下
+import waifu2x_vulkan as waifu2x
 import time
 
 if __name__ == "__main__":
@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     while count > 0:
         time.sleep(1)
-        info = waifu2x.load(1)
+        info = waifu2x.load(0)
         if not info:
             continue 
         count -= 1

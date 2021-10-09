@@ -1,9 +1,3 @@
 [submodule "src/ncnn"]
 	path = src/ncnn
 	url = https://github.com/Tencent/ncnn.git
-[submodule "src/libwebp"]
-	path = src/libwebp
-	url = https://github.com/webmproject/libwebp.git
-[submodule "src/pybind11"]
-	path = src/pybind11
-	url = https://github.com/pybind/pybind11.git

@@ -61,17 +61,15 @@ jobs:
                 -DNCNN_BUILD_TOOLS=OFF \
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DPYTHON_EXECUTABLE=/usr/bin/python3.9 \
-                -DPYBIND11_FINDPYTHON=OFF \
-                -DPYBIND11_PYTHON_VERSION="3.9.6" \
                 ../src
           cmake --build . -j 2
-          cp libwaifu2x.so waifu2x.so
-          strip -x waifu2x.so
+          cp libwaifu2x_vulkan.so waifu2x_vulkan.so
+          strip -x waifu2x_vulkan.so
       - name: package
         run: |
           mkdir -p ${{ env.PACKAGENAME }}
           cp README.md LICENSE ${{ env.PACKAGENAME }}
-          cp build/waifu2x.so ${{ env.PACKAGENAME }}
+          cp build/waifu2x_vulkan.so ${{ env.PACKAGENAME }}
           cp -r models test ${{ env.PACKAGENAME }}
           zip -9 -r $PACKAGENAME.zip $PACKAGENAME
       - name: upload
@@ -171,8 +169,6 @@ jobs:
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DUSE_STATIC_MOLTENVK=ON \
                 -DPYTHON_EXECUTABLE=$DEVELOPER_DIR/Library/Frameworks/Python3.framework/Versions/3.8/bin/python3.8 \
-                -DPYBIND11_FINDPYTHON=OFF \
-                -DPYBIND11_PYTHON_VERSION="3.8.2" \
                 -DCMAKE_SYSTEM_PROCESSOR=x86_64 \
                 -DCMAKE_OSX_ARCHITECTURES=x86_64 \
                 -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
@@ -194,8 +190,6 @@ jobs:
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DUSE_STATIC_MOLTENVK=ON \
                 -DPYTHON_EXECUTABLE=$DEVELOPER_DIR/Library/Frameworks/Python3.framework/Versions/3.8/bin/python3.8 \
-                -DPYBIND11_FINDPYTHON=OFF \
-                -DPYBIND11_PYTHON_VERSION="3.8.2" \
                 -DCMAKE_CROSSCOMPILING=ON \
                 -DCMAKE_SYSTEM_PROCESSOR=arm64 \
                 -DCMAKE_OSX_ARCHITECTURES=arm64 \
@@ -210,13 +204,13 @@ jobs:
           cmake --build . -j 2
       - name: build
         run: |
-          lipo -create build-x86_64/libwaifu2x.dylib build-arm64/libwaifu2x.dylib -o waifu2x.so
-          strip -x waifu2x.so
+          lipo -create build-x86_64/libwaifu2x_vulkan.dylib build-arm64/libwaifu2x_vulkan.dylib -o waifu2x_vulkan.so
+          strip -x waifu2x_vulkan.so
       - name: package
         run: |
           mkdir -p ${{ env.PACKAGENAME }}
           cp README.md LICENSE ${{ env.PACKAGENAME }}
-          cp waifu2x.so ${{ env.PACKAGENAME }}
+          cp waifu2x_vulkan.so ${{ env.PACKAGENAME }}
           cp -r models test ${{ env.PACKAGENAME }}
           zip -9 -r $PACKAGENAME.zip $PACKAGENAME
       - name: upload
@@ -293,19 +287,17 @@ jobs:
                 -DNCNN_BUILD_TOOLS=OFF `
                 -DNCNN_BUILD_EXAMPLES=OFF `
                 -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
-                -DPYBIND11_FINDPYTHON=OFF `
-                -DPYBIND11_PYTHON_VERSION=3 `
                 ..\src
           Copy-Item -Verbose -Path "$($Env:pythonLocation + '\libs\python39.lib')" -Destination "$((Get-Location).Path)"
           cmake --build . --config Release -j 2
           Set-Location .\Release\
-          Copy-Item waifu2x.dll waifu2x.pyd
+          Copy-Item waifu2x_vulkan.dll waifu2x_vulkan.pyd
       - name: package
         run: |
           mkdir ${{ env.PACKAGENAME }}
           Copy-Item -Verbose -Path "README.md" -Destination "${{ env.PACKAGENAME }}"
           Copy-Item -Verbose -Path "LICENSE" -Destination "${{ env.PACKAGENAME }}"
-          Copy-Item -Verbose -Path "build\Release\waifu2x.pyd" -Destination "${{ env.PACKAGENAME }}"
+          Copy-Item -Verbose -Path "build\Release\waifu2x_vulkan.pyd" -Destination "${{ env.PACKAGENAME }}"
           Copy-Item -Verbose -Recurse -Path "models" -Destination "${{ env.PACKAGENAME }}"
           Copy-Item -Verbose -Recurse -Path "test" -Destination "${{ env.PACKAGENAME }}"
           7z a -r "$($Env:PACKAGENAME + '.zip')" "$($Env:PACKAGENAME)"

@@ -13,6 +13,9 @@ static PyObject*
 waifu2x_py_init(PyObject* self, PyObject* args);
 
 static PyObject*
+waifu2x_py_set_debug(PyObject* self, PyObject* args);
+
+static PyObject*
 waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
@@ -40,7 +43,7 @@ static PyObject*
 waifu2x_py_get_info(PyObject* self, PyObject* args);
 
 PyMODINIT_FUNC
-PyInit_waifu2x(void);
+PyInit_waifu2x_vulkan(void);
 
 static PyMethodDef SpamMethods[] = {
     {"init",  waifu2x_py_init, METH_VARARGS,
@@ -63,6 +66,8 @@ static PyMethodDef SpamMethods[] = {
      "kill thread"},
     {"getVersion",  waifu2x_py_version, METH_VARARGS,
      "get version"},
+    {"setDebug",  waifu2x_py_set_debug, METH_VARARGS,
+     "debug log"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -77,5 +82,5 @@ static struct PyModuleDef spammodule = {
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "version: v1.0.1\ngit:https://github.com/tonquer/waifu2x-ncnn-vulkan-python \n";
+static const char* Version = "v1.0.3";
 #endif 

@@ -24,6 +24,7 @@
 
 TaskQueue Toproc;
 TaskQueue Tosave;
+bool IsDebug = false;
 
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout = 10)
 {
@@ -47,7 +48,7 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     outSize = v.outSize;
 
     v.out = NULL;
-    fprintf(stdout, "[waifu2x] end encode imageId :%d, encode:%f, proc:%f, decode:%f, \n",
+    waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, encode:%f, proc:%f, decode:%f, \n",
         v.callBack, (double)(v.encodeTick - v.startTick) / CLOCKS_PER_SEC,
         (double)(v.procTick - v.encodeTick) / CLOCKS_PER_SEC,
         (double)(v.saveTick - v.procTick) / CLOCKS_PER_SEC);
@@ -63,7 +64,6 @@ void* waifu2x_proc(void* args)
         Task v;
 
         Toproc.get(v);
-        fprintf(stdout, "proc %d", v.id);
         if (v.id == -233)
             break;
         if (v.modelIndex >= Waifu2xList.size())
@@ -114,7 +114,7 @@ void* waifu2x_proc(void* args)
         else
             name = "cpu";
 
-        fprintf(stdout, "[waifu2x] start encode imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, tta:%d\n",
+        waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, tta:%d\n",
             v.callBack, name, v.file.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, waifu2x->tta_mode);
 
         if (waifu2x && pixeldata)
@@ -149,7 +149,7 @@ void* waifu2x_proc(void* args)
             {
                 if (i == scale_run_count - 1)
                 {
-                    fprintf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
+                    waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
                         v.callBack, i + 1, v.inimage.h, v.outimage.h, v.inimage.w, v.outimage.w);
                     waifu2x->process(v.inimage, v.outimage);
                     v.inimage.release();
@@ -157,7 +157,7 @@ void* waifu2x_proc(void* args)
                 else
                 {
                     ncnn::Mat tmpimage(v.inimage.w * 2, v.inimage.h * 2, (size_t)v.inimage.elemsize, (int)v.inimage.elemsize);
-                    fprintf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
+                    waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
                         v.callBack, i + 1, v.inimage.h, tmpimage.h, v.inimage.w, tmpimage.w);
                     waifu2x->process(v.inimage, tmpimage);
                     v.inimage.release();
@@ -262,14 +262,14 @@ void* waifu2x_proc(void* args)
             else
             {
                 const char* error = stbi_failure_reason();
-                fprintf(stderr, "[waifu2x] encode image %d failed, %s\n", v.id, error);
+                waifu2x_printf(stderr, "[waifu2x] encode image %d failed, %s\n", v.id, error);
             }
             v.saveTick = clock();
         }
         else
         {
             const char* error = stbi_failure_reason();
-            fprintf(stderr, "[waifu2x] decode image %d failed, %s\n", v.id, error);
+            waifu2x_printf(stderr, "[waifu2x] decode image %d failed, %s\n", v.id, error);
             v.isSuc = false;
         }
         Tosave.put(v);
@@ -366,12 +366,12 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
 
     if (stat(parampath, &buffer) != 0)
     {
-        fprintf(stderr, "[waifu2x] not found path %s\n", parampath);
+        waifu2x_printf(stderr, "[waifu2x] not found path %s\n", parampath);
         return Waifu2xError::NotModel;
     }
     if (stat(modelpath, &buffer) != 0)
     {
-        fprintf(stderr, "[waifu2x] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, "[waifu2x] not found path %s\n", modelpath);
         return Waifu2xError::NotModel;
     }
 #if _WIN32
@@ -412,7 +412,7 @@ int waifu2x_init()
 int waifu2x_init_set(int gpuId2, int threadNum)
 {
     if (gpuId2 < -1 || gpuId2 >  2) { 
-        fprintf(stderr, "[waifu2x] gpuId error, gpuId2:%d, threadNum:%d \n", gpuId2, threadNum);
+        waifu2x_printf(stderr, "[waifu2x] gpuId error, gpuId2:%d, threadNum:%d \n", gpuId2, threadNum);
         return -1; 
     };
     if (threadNum <= 0 || threadNum > 32) { return -1; };
@@ -424,7 +424,7 @@ int waifu2x_init_set(int gpuId2, int threadNum)
     int gpu_count = ncnn::get_gpu_count();
     if (gpuId2 < -1 || gpuId2 >= gpu_count)
     {
-        fprintf(stderr, "[waifu2x] invalid gpu device\n");
+        waifu2x_printf(stderr, "[waifu2x] invalid gpu device\n");
         ncnn::destroy_gpu_instance();
         return -1;
     }
@@ -476,7 +476,7 @@ int waifu2x_init_set(int gpuId2, int threadNum)
         }
     }
     GpuId = gpuId2;
-    //fprintf(stdout, "init success, threadNum:%d\n", TotalJobsProc);
+    //waifu2x_printf(stdout, "init success, threadNum:%d\n", TotalJobsProc);
     return 0;
 }
 
@@ -575,6 +575,12 @@ int waifu2x_clear()
     return 0;
 }
 
+int waifu2x_set_debug(bool isdebug)
+{
+    IsDebug = isdebug;
+    return 0;
+}
+
 int waifu2x_remove_wait(std::set<int>& taskIds)
 {
     Toproc.remove(taskIds);
@@ -586,4 +592,18 @@ int waifu2x_remove(std::set<int> &taskIds)
     Toproc.remove(taskIds);
     Tosave.remove(taskIds);
     return 0;
+}
+
+int waifu2x_printf(void* p, const char* fmt, ...)
+{
+    if (IsDebug) {
+        FILE* f = (FILE*)p;
+        va_list vargs;
+        int result;
+        va_start(vargs, fmt);
+        result = vfprintf(f, fmt, vargs);
+        va_end(vargs);
+        return result;
+    }
+        return 0;
 }

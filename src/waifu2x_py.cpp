@@ -2,7 +2,7 @@
 
 
 PyMODINIT_FUNC
-PyInit_waifu2x(void)
+PyInit_waifu2x_vulkan(void)
 {
     PyObject* m;
 
@@ -86,6 +86,17 @@ waifu2x_py_clear(PyObject* self, PyObject* args)
         return PyLong_FromLong(0);
     }
     waifu2x_clear();
+    return PyLong_FromLong(0);
+}
+
+
+static PyObject*
+waifu2x_py_set_debug(PyObject* self, PyObject* args)
+{
+    unsigned int isDebug;
+    if (!PyArg_ParseTuple(args, "i", &isDebug))
+        Py_RETURN_NONE;
+    waifu2x_set_debug(bool(isDebug));
     return PyLong_FromLong(0);
 }
 
@@ -214,12 +225,14 @@ waifu2x_py_load(PyObject* self, PyObject* args)
     int callBack;
     if (!PyArg_ParseTuple(args, "i", &timeout))
         Py_RETURN_NONE;
+    PyThreadState* save;
+    save = PyEval_SaveThread();
     int sts = waifu2x_getData(out, outSize, tick, callBack, timeout);
     if (sts <= 0)
     {
         Py_RETURN_NONE;
     }
-
+    PyEval_RestoreThread(save);
     PyObject* data = Py_BuildValue("y#iid", (char*)out, outSize, sts, callBack, tick);
     if (out) free(out);
     return data;
