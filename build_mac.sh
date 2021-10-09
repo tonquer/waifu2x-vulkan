@@ -39,11 +39,14 @@ rm -rf vulkansdk-macos-1.2.162.0/Applications
 find vulkansdk-macos-1.2.162.0 -type f | grep -v -E 'vulkan|glslang|MoltenVK' | xargs rm
 hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
 export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
-python3 -V
-which python3
-find /usr/local/Cellar -name "libpython*.a"
+PythonDir=`which python3`
+PythonDir=${PythonDir%/*}/..
 VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
 PyVer=${Version:0:3}
+LibDir=`find  $PythonDir -name "libpython*.a"|grep $PyVer|tail -1`
+IncludeDir=`find  $PythonDir -name "Python.h"|tail -1`
+IncludeDir=${IncludeDir%/*}
+
 # Python
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release \
@@ -51,8 +54,8 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
       -DUSE_STATIC_MOLTENVK=ON \
-      -DPYTHON_INCLUDE_DIRS=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/include/python${PyVer} \
-      -DPYTHON_LIBRARY=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/lib/python${PyVer}/config-${PyVer}-darwin/libpython${PyVer}.a \
+      -DPYTHON_INCLUDE_DIRS=${IncludeDir} \
+      -DPYTHON_LIBRARY=${LibDir} \
       -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
       -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
       -DOpenMP_C_LIB_NAMES="libomp"\
