@@ -2,7 +2,7 @@ $LIB_NAME='waifu2x-ncnn-vulkan-python'
 $TAG_NAME=(git describe --abbrev=0 --tags)
 $HEAD_SHA_SHORT=(git rev-parse --short HEAD)
 $PACKAGE_PREFIX=($LIB_NAME + '-' + $TAG_NAME + '_' + $HEAD_SHA_SHORT)
-$PACKAGENAME=($PACKAGE_PREFIX + '-py39-windows')
+$PACKAGENAME=($PACKAGE_PREFIX + '-py37-windows')
 
 # Vulkan SDK
 Invoke-WebRequest -Uri `
@@ -25,9 +25,9 @@ cmake -A x64 `
       -DNCNN_VULKAN=ON `
       -DNCNN_BUILD_TOOLS=OFF `
       -DNCNN_BUILD_EXAMPLES=OFF `
-      -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
+      -DPYTHON_INCLUDE_DIRS="$($Env:pythonLocation + '\include')" `
+      -DPYTHON_LIBRARY="$($Env:pythonLocation + '\libs\python37.lib')" `
       ..\src
-Copy-Item -Verbose -Path "$($Env:pythonLocation + '\libs\python39.lib')" -Destination "$((Get-Location).Path)"
 cmake --build . --config Release -j 2
 Set-Location .\Release\
 Move-Item waifu2x_vulkan.dll waifu2x_vulkan.pyd

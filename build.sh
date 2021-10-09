@@ -2,7 +2,7 @@ LIB_NAME=waifu2x-ncnn-vulkan-python
 TAG_NAME=$(git describe --abbrev=0 --tags)
 HEAD_SHA_SHORT=$(git rev-parse --short HEAD)
 PACKAGE_PREFIX=${LIB_NAME}-${TAG_NAME}_${HEAD_SHA_SHORT}
-PACKAGENAME=${PACKAGE_PREFIX}-py39-ubuntu
+PACKAGENAME=${PACKAGE_PREFIX}-py37-ubuntu
 
 # Vulkan SDK
 wget 'https://sdk.lunarg.com/sdk/download/1.2.162.0/linux/vulkansdk-linux-x86_64-1.2.162.0.tar.gz?Human=true' \
@@ -18,7 +18,8 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_VULKAN=ON \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
-      -DPYTHON_EXECUTABLE=/usr/bin/python3.9 \
+      -DPYTHON_INCLUDE_DIRS=/usr/include/python3.7m/ \
+      -DPYTHON_LIBRARY= /usr/local/python3/lib/libpython3.7m.a \
       ../src
 cmake --build . -j 2
 cp libwaifu2x_vulkan.so waifu2x_vulkan.so

@@ -22,16 +22,16 @@ static PyObject*
 waifu2x_py_clear (PyObject* self, PyObject* args);
 
 static PyObject*
-waifu2x_py_remove_wait(PyObject* self, PyObject* args);
+waifu2x_py_remove_wait(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
-waifu2x_py_remove(PyObject* self, PyObject* args);
+waifu2x_py_remove(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
 waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
-waifu2x_py_load(PyObject* self, PyObject* args);
+waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
 waifu2x_py_stop(PyObject* self, PyObject* args);
@@ -47,27 +47,27 @@ PyInit_waifu2x_vulkan(void);
 
 static PyMethodDef SpamMethods[] = {
     {"init",  waifu2x_py_init, METH_VARARGS,
-     "init ncnn"},
+     "Init ncnn\n"},
     {"initSet",  (PyCFunction)waifu2x_py_init_set, METH_VARARGS | METH_KEYWORDS,
-     "init setting"},
+     "Init setting\ngpuId: getGpuInfo get index \nthreadNum: convert thread num \n"},
     {"add",  (PyCFunction)waifu2x_py_add, METH_VARARGS | METH_KEYWORDS,
-     "add task"},
+     "Add task, \ndata: img bytes \nmodelIndex: Model enum \nbackId: call back id \nformat: export fmt, support bmp png jpg ico \nwidth: export set width \nhigh: export set high \nscale: export set width and high\n"},
     {"getGpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
-     "get gpu list"},
-    {"remove",  (PyCFunction)waifu2x_py_remove, METH_VARARGS,
-     "delete all task"},
+     "Get gpu list\n"},
+    {"remove",  (PyCFunction)waifu2x_py_remove, METH_VARARGS | METH_KEYWORDS,
+     "Delete task, By callback ids\nbackIds: callback ids\n"},
     {"clear",  (PyCFunction)waifu2x_py_clear, METH_VARARGS,
-     "clear all queue"},
-    {"removeWaitProc",  (PyCFunction)waifu2x_py_remove_wait, METH_VARARGS,
-     "delete proc task"},
-    {"load",  waifu2x_py_load, METH_VARARGS,
-     "load a complete task"},
+     "Clear all queue\n"},
+    {"removeWaitProc",  (PyCFunction)waifu2x_py_remove_wait, METH_VARARGS | METH_KEYWORDS,
+     "Clear proc task, by callback ids\nbackIds: callback ids\n"},
+    {"load",  (PyCFunction)waifu2x_py_load, METH_VARARGS | METH_KEYWORDS,
+     "Load a complete task \nblock: 0 block, 1 not block\n"},
     {"stop",  waifu2x_py_stop, METH_VARARGS,
-     "kill thread"},
+     "Kill thread\n"},
     {"getVersion",  waifu2x_py_version, METH_VARARGS,
-     "get version"},
+     "Get version\nProject: https://github.com/tonquer/waifu2x-ncnn-vulkan-python \nVersion: v1.0.3 \n"},
     {"setDebug",  waifu2x_py_set_debug, METH_VARARGS,
-     "debug log"},
+     "Set debug log\n True or False\n"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

@@ -17,60 +17,6 @@ jobs:
           HEAD_SHA_SHORT=$(git rev-parse --short HEAD)
           echo "::set-output name=PACKAGE_PREFIX::${LIB_NAME}-${TAG_NAME}_${HEAD_SHA_SHORT}"
 
-  ubuntu:
-    needs: [setup]
-    runs-on: ubuntu-latest
-    env:
-      PACKAGENAME: ${{ needs.setup.outputs.PACKAGE_PREFIX }}-py39-ubuntu-x86_64
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
-      - name: cache-vulkansdk
-        id: cache-vulkansdk
-        uses: actions/cache@v1
-        with:
-          path: "1.2.162.0"
-          key: vulkansdk-linux-x86_64-1.2.162.0
-      - name: vulkansdk
-        if: steps.cache-vulkansdk.outputs.cache-hit != 'true'
-        run: |
-          wget 'https://sdk.lunarg.com/sdk/download/1.2.162.0/linux/vulkansdk-linux-x86_64-1.2.162.0.tar.gz?Human=true' \
-               -O vulkansdk-linux-x86_64-1.2.162.0.tar.gz
-          tar -xf vulkansdk-linux-x86_64-1.2.162.0.tar.gz
-          rm -rf 1.2.162.0/source 1.2.162.0/samples
-          find 1.2.162.0 -type f | grep -v -E 'vulkan|glslang' | xargs rm
-      - name: install-python
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends --no-install-suggests \
-                               python3.9 python3.9-dev
-      - name: build
-        run: |
-          export VULKAN_SDK=`pwd`/1.2.162.0/x86_64
-          mkdir build && cd build
-          VERSION=/usr/bin/python3.9 -V 2>&1 | cut -d " " -f 2
-          cmake -DCMAKE_BUILD_TYPE=Release \
-                -DNCNN_VULKAN=ON \
-                -DNCNN_BUILD_TOOLS=OFF \
-                -DNCNN_BUILD_EXAMPLES=OFF \
-                -DPYTHON_EXECUTABLE=/usr/bin/python3.9 \
-                ../src
-          cmake --build . -j 2
-          cp libwaifu2x_vulkan.so waifu2x_vulkan.so
-          strip -x waifu2x_vulkan.so
-      - name: package
-        run: |
-          mkdir -p ${{ env.PACKAGENAME }}
-          cp README.md LICENSE ${{ env.PACKAGENAME }}
-          cp build/waifu2x_vulkan.so ${{ env.PACKAGENAME }}
-          cp -r models test ${{ env.PACKAGENAME }}
-      - name: upload
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.PACKAGENAME }}
-          path: ${{ env.PACKAGENAME }}
-
   ubuntu-py37:
     needs: [setup]
     runs-on: ubuntu-18.04
@@ -102,12 +48,14 @@ jobs:
         run: |
           export VULKAN_SDK=`pwd`/1.2.162.0/x86_64
           mkdir build && cd build
-          VERSION=/usr/bin/python3 -V 2>&1 | cut -d " " -f 2
+          Version=/usr/bin/python3 -V 2>&1 | cut -d " " -f 2
+          PyVer=${Version:0:3}
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DNCNN_VULKAN=ON \
                 -DNCNN_BUILD_TOOLS=OFF \
                 -DNCNN_BUILD_EXAMPLES=OFF \
-                -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+                -DPYTHON_INCLUDE_DIRS=/usr/include/${PyVer}m/ \
+                -DPYTHON_LIBRARY= /usr/local/python3/lib/libpython${PyVer}m.a \
                 ../src
           cmake --build . -j 2
           cp libwaifu2x_vulkan.so waifu2x_vulkan.so
@@ -213,13 +161,15 @@ jobs:
         run: |
           export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
           VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
+          PyVer=${Version:0:3}
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DNCNN_VULKAN=ON \
                 -DNCNN_BUILD_TOOLS=OFF \
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DUSE_STATIC_MOLTENVK=ON \
-                -DPYTHON_EXECUTABLE=`which python3` \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/include/python${PyVer} \
+                -DPYTHON_LIBRARY=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/lib/python${PyVer}/config-${PyVer}-darwin/libpython${PyVer}.a \
                 -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
                 -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
                 -DOpenMP_C_LIB_NAMES="libomp"\
@@ -261,68 +211,6 @@ jobs:
       - name: rename
         run: |
           cp -r ${{ needs.setup.outputs.PACKAGE_PREFIX }}-py39-macos $PACKAGENAME
-      - name: upload
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.PACKAGENAME }}
-          path: ${{ env.PACKAGENAME }}
-
-  windows:
-    needs: [setup]
-    runs-on: windows-latest
-    env:
-      PACKAGENAME: ${{ needs.setup.outputs.PACKAGE_PREFIX }}-py39-windows-x64
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
-      - name: cache-vulkansdk
-        id: cache-vulkansdk
-        uses: actions/cache@v1
-        with:
-          path: "VulkanSDK"
-          key: VulkanSDK-1.2.162.0-Installer
-      - name: vulkansdk
-        if: steps.cache-vulkansdk.outputs.cache-hit != 'true'
-        run: |
-          Invoke-WebRequest -Uri `
-            https://sdk.lunarg.com/sdk/download/1.2.162.0/windows/VulkanSDK-1.2.162.0-Installer.exe?Human=true `
-            -OutFile VulkanSDK-1.2.162.0-Installer.exe
-          7z x -aoa .\VulkanSDK-1.2.162.0-Installer.exe -oVulkanSDK
-          Remove-Item .\VulkanSDK\Demos, `
-                      .\VulkanSDK\Samples, `
-                      .\VulkanSDK\Third-Party, `
-                      .\VulkanSDK\Tools, `
-                      .\VulkanSDK\Tools32, `
-                      .\VulkanSDK\Bin32, `
-                      .\VulkanSDK\Lib32 `
-                      -Recurse
-      - name: install-python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9.6'
-      - name: build
-        run: |
-          $Env:VULKAN_SDK=((Get-Location).Path + '\VulkanSDK')
-          mkdir build; Set-Location .\build\
-          cmake -A x64 `
-                -DNCNN_VULKAN=ON `
-                -DNCNN_BUILD_TOOLS=OFF `
-                -DNCNN_BUILD_EXAMPLES=OFF `
-                -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
-                ..\src
-          Copy-Item -Verbose -Path "$($Env:pythonLocation + '\libs\python39.lib')" -Destination "$((Get-Location).Path)"
-          cmake --build . --config Release -j 2
-          Set-Location .\Release\
-          Copy-Item waifu2x_vulkan.dll waifu2x_vulkan.pyd
-      - name: package
-        run: |
-          mkdir ${{ env.PACKAGENAME }}
-          Copy-Item -Verbose -Path "README.md" -Destination "${{ env.PACKAGENAME }}"
-          Copy-Item -Verbose -Path "LICENSE" -Destination "${{ env.PACKAGENAME }}"
-          Copy-Item -Verbose -Path "build\Release\waifu2x_vulkan.pyd" -Destination "${{ env.PACKAGENAME }}"
-          Copy-Item -Verbose -Recurse -Path "models" -Destination "${{ env.PACKAGENAME }}"
-          Copy-Item -Verbose -Recurse -Path "test" -Destination "${{ env.PACKAGENAME }}"
       - name: upload
         uses: actions/upload-artifact@v2
         with:
@@ -373,9 +261,9 @@ jobs:
                 -DNCNN_VULKAN=ON `
                 -DNCNN_BUILD_TOOLS=OFF `
                 -DNCNN_BUILD_EXAMPLES=OFF `
-                -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
+                -DPYTHON_INCLUDE_DIRS="$($Env:pythonLocation + '\include')" `
+                -DPYTHON_LIBRARY="$($Env:pythonLocation + '\libs\python37.lib')" `
                 ..\src
-          Copy-Item -Verbose -Path "$($Env:pythonLocation + '\libs\python37.lib')" -Destination "$((Get-Location).Path)"
           cmake --build . --config Release -j 2
           Set-Location .\Release\
           Copy-Item waifu2x_vulkan.dll waifu2x_vulkan.pyd

@@ -3,7 +3,7 @@ LIB_NAME=waifu2x-ncnn-vulkan-python
 TAG_NAME=$(git describe --abbrev=0 --tags)
 HEAD_SHA_SHORT=$(git rev-parse --short HEAD)
 PACKAGE_PREFIX=${LIB_NAME}-${TAG_NAME}_${HEAD_SHA_SHORT}
-PACKAGENAME=${PACKAGE_PREFIX}-py39-macos
+PACKAGENAME=${PACKAGE_PREFIX}-py37-macos
 
 # OpemMP
 wget 'https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/openmp-11.0.0.src.tar.xz'
@@ -39,7 +39,8 @@ rm -rf vulkansdk-macos-1.2.162.0/Applications
 find vulkansdk-macos-1.2.162.0 -type f | grep -v -E 'vulkan|glslang|MoltenVK' | xargs rm
 hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
 export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
-
+VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
+PyVer=${Version:0:3}
 # Python
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release \
@@ -47,7 +48,8 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
       -DUSE_STATIC_MOLTENVK=ON \
-      -DPYTHON_EXECUTABLE=/usr/local/Cellar/python@3.9/3.9.5/bin/python3.9 \
+      -DPYTHON_INCLUDE_DIRS=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/include/python${PyVer} \
+      -DPYTHON_LIBRARY=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/lib/python${PyVer}/config-${PyVer}-darwin/libpython${PyVer}.a \
       -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
       -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
       -DOpenMP_C_LIB_NAMES="libomp"\

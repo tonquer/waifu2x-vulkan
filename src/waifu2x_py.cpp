@@ -101,16 +101,17 @@ waifu2x_py_set_debug(PyObject* self, PyObject* args)
 }
 
 static PyObject*
-waifu2x_py_remove_wait(PyObject* self, PyObject* args)
+waifu2x_py_remove_wait(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     if (!IsInitSet)
     {
         Py_RETURN_NONE;
     }
     PyObject* bufobj;
-    if (!PyArg_ParseTuple(args, "O", &bufobj)) {
+    char* kwarg_names[] = { "backIds", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwarg_names, &bufobj))
         Py_RETURN_NONE;
-    }
+
     int list_len = PyObject_Size(bufobj);
     if (list_len <= 0)
     {
@@ -130,16 +131,18 @@ waifu2x_py_remove_wait(PyObject* self, PyObject* args)
 }
 
 static PyObject*
-waifu2x_py_remove(PyObject* self, PyObject* args)
+waifu2x_py_remove(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     if (!IsInitSet)
     {
         Py_RETURN_NONE;
     }
     PyObject* bufobj;
-    if (!PyArg_ParseTuple(args, "O", &bufobj)) {
+
+    char* kwarg_names[] = { "backIds", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwarg_names, &bufobj))
         Py_RETURN_NONE;
-    }
+
     int list_len = PyObject_Size(bufobj);
     if (list_len <= 0)
     {
@@ -215,19 +218,20 @@ waifu2x_py_get_info(PyObject* self, PyObject* args)
 }
 
 static PyObject*
-waifu2x_py_load(PyObject* self, PyObject* args)
+waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     if (!IsInitSet) Py_RETURN_NONE;
     void* out = NULL;
     unsigned long outSize = 0;
-    unsigned int timeout;
+    unsigned int block;
     double tick = 0;
     int callBack;
-    if (!PyArg_ParseTuple(args, "i", &timeout))
+    char* kwarg_names[] = { "block", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i", kwarg_names, &block))
         Py_RETURN_NONE;
     PyThreadState* save;
     save = PyEval_SaveThread();
-    int sts = waifu2x_getData(out, outSize, tick, callBack, timeout);
+    int sts = waifu2x_getData(out, outSize, tick, callBack, block);
     if (sts <= 0)
     {
         Py_RETURN_NONE;
