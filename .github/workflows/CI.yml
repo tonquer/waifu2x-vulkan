@@ -52,15 +52,17 @@ jobs:
           LibDir=`find  $pythonLocation -name "libpython*.a"|tail -1`
           IncludeDir=`find  $pythonLocation -name "Python.h"|tail -1`
           IncludeDir=${IncludeDir%/*}
+          PythonBin=`which python3`
           echo $LibDir
           echo $IncludeDir
+          echo $PythonBin
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DNCNN_VULKAN=ON \
                 -DNCNN_BUILD_TOOLS=OFF \
                 -DNCNN_BUILD_EXAMPLES=OFF \
-                -DPYTHON_EXECUTABLE `which python3` \
+                -DPYTHON_EXECUTABLE=${PythonBin}  \
                 -DPYTHON_INCLUDE_DIRS=${IncludeDir} \
-                -DPYTHON_LIBRARY= ${LibDir} \
+                -DPYTHON_LIBRARY=${LibDir} \
                 ../src
           cmake --build . -j 2
           cp libwaifu2x_vulkan.so waifu2x_vulkan.so
@@ -168,16 +170,18 @@ jobs:
           LibDir=`find  $pythonLocation -name "libpython*.a"|tail -1`
           IncludeDir=`find  $pythonLocation -name "Python.h"|tail -1`
           IncludeDir=${IncludeDir%/*}
+          PythonBin=`which python3`
           echo $pythonLocation
           echo $LibDir
           echo $IncludeDir
+          echo $PythonBin
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DNCNN_VULKAN=ON \
                 -DNCNN_BUILD_TOOLS=OFF \
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DUSE_STATIC_MOLTENVK=ON \
-                -DPYTHON_EXECUTABLE `which python3` \
+                -DPYTHON_EXECUTABLE=${PythonBin} \
                 -DPYTHON_INCLUDE_DIRS=${IncludeDir} \
                 -DPYTHON_LIBRARY=${LibDir} \
                 -DOpenMP_C_FLAGS="-Xclang -fopenmp" \

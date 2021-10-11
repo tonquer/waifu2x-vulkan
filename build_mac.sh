@@ -43,9 +43,11 @@ PythonDir=`which python3`
 PythonDir=${PythonDir%/*}/..
 VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
 PyVer=${Version:0:3}
+PythonBin=`which python3`
 LibDir=`find  $PythonDir -name "libpython*.a"|grep $PyVer|tail -1`
 IncludeDir=`find  $PythonDir -name "Python.h"|tail -1`
 IncludeDir=${IncludeDir%/*}
+echo $PythonBin
 echo $pythonLocation
 echo $LibDir
 echo $IncludeDir
@@ -57,6 +59,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
       -DUSE_STATIC_MOLTENVK=ON \
+      -DPYTHON_EXECUTABLE=${PythonBin} \
       -DPYTHON_INCLUDE_DIRS=${IncludeDir} \
       -DPYTHON_LIBRARY=${LibDir} \
       -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
