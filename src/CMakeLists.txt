@@ -19,7 +19,10 @@ find_package(Vulkan REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(pybind11)
-include_directories(${pybind11_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
+include_directories(${pybind11_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
+
+message("include " ${pybind11_INCLUDE_DIRS})
+message("include " ${PYTHON_INCLUDE_DIRS})
 
 if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")

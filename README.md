@@ -4,9 +4,9 @@
 - 仅支持 JPG 和 PNG 图
 
 ## 在 Python 中使用
-- 将生成的 waifu2x.pyd (或者 waifu2x.so) 放入代码目录或者 Python 安装目录 DLLs 文件夹 (win)
+- 将生成的 waifu2x_vulkan.pyd (或者 waifu2x_vulkan.so) 放入代码目录或者 Python 安装目录 DLLs 文件夹 (win)
 ```shell
-import waifu2x
+import waifu2x_vulkan
 ```
 
 ## 示例
@@ -14,19 +14,19 @@ import waifu2x
 - 请见 test 目录中的示例
 
 ## 编译 (GitHub Actions)
-- 查看 [GitHub Actions](https://github.com/tonquer/waifu2x-ncnn-vulkan-python/actions) 编译结果
+- 查看 [GitHub Actions](https://github.com/tonquer/waifu2x-vulkan/actions) 编译结果
 
 ## 编译 (Windows)
 1. 安装 CMake, Python 和 7z
 2. 克隆本仓库
 ````shell
-git clone https://github.com/tonquer/waifu2x-ncnn-vulkan-python && cd waifu2x-ncnn-vulkan-python
+git clone https://github.com/tonquer/waifu2x-vulkan && cd waifu2x-vulkan
 git submodule update --init --recursive
 ````
-3. 执行编译脚本 (使用 PowerShell)
-* 环境变量: `pythonLocation` 应设置为 Python 的安装目录
-```shell
-$Env:pythonLocation='C:\path\to\python\directory'
+3. 安装Python，请注意勾选  
+Download debugging symbols  
+Download debug binaries
+执行编译脚本 (使用 PowerShell)  
 . .\build.ps1
 ```
 * 部分用户可能需要安装 Vulkan 运行环境, 这取决于你的显卡驱动中是否包含 libvulkan.1.dll;\
@@ -38,7 +38,7 @@ brew install cmake python@3.9
 ````
 2. 克隆本仓库
 ````shell
-git clone https://github.com/tonquer/waifu2x-ncnn-vulkan-python && cd waifu2x-ncnn-vulkan-python
+git clone https://github.com/tonquer/waifu2x-vulkan && cd waifu2x-vulkan
 git submodule update --init --recursive
 ````
 3. 执行编译脚本
@@ -67,7 +67,7 @@ sudo apt-get install --no-install-recommends --no-install-suggests \
 ````
 2. 克隆本仓库
 ````shell
-git clone https://github.com/tonquer/waifu2x-ncnn-vulkan-python && cd waifu2x-ncnn-vulkan-python
+git clone https://github.com/tonquer/waifu2x-vulkan && cd waifu2x-vulkan
 git submodule update --init --recursive
 ````
 3. 执行编译脚本

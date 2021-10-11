@@ -58,7 +58,6 @@ jobs:
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DPYTHON_EXECUTABLE=${PythonBin}  \
                 -DPYBIND11_FINDPYTHON=OFF \
-                -DPYBIND11_PYTHON_VERSION=$VERSION \
                 ../src
           cmake --build . -j 2
           cp libwaifu2x_vulkan.so waifu2x_vulkan.so
@@ -175,7 +174,6 @@ jobs:
                 -DUSE_STATIC_MOLTENVK=ON \
                 -DPYTHON_EXECUTABLE=${PythonBin} \
                 -DPYBIND11_FINDPYTHON=OFF \
-                -DPYBIND11_PYTHON_VERSION=$VERSION \
                 -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
                 -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
                 -DOpenMP_C_LIB_NAMES="libomp"\
@@ -246,7 +244,6 @@ jobs:
                 -DNCNN_BUILD_EXAMPLES=OFF `
                 -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
                 -DPYBIND11_FINDPYTHON=OFF `
-                -DPYBIND11_PYTHON_VERSION=($V -split " ")[1] `
                 ..\src
           cmake --build . --config Release -j 2
           Set-Location .\Release\
