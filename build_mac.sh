@@ -71,12 +71,12 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DVulkan_LIBRARY=$VULKAN_SDK/../MoltenVK/MoltenVK.xcframework/macos-arm64_x86_64/libMoltenVK.a \
       ../src
 cmake --build . -j 2
-cp libwaifu2x.dylib waifu2x.so
-strip -x waifu2x.so
+cp libwaifu2x_vulkan.dylib waifu2x_vulkan.so
+strip -x waifu2x_vulkan.so
 
 # Package
 cd ..
 mkdir -p $PACKAGENAME
 cp README.md LICENSE $PACKAGENAME
-cp build/waifu2x.so $PACKAGENAME
+cp build/waifu2x_vulkan.so $PACKAGENAME
 cp -r models test $PACKAGENAME
