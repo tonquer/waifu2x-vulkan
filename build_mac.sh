@@ -46,6 +46,9 @@ PyVer=${Version:0:3}
 LibDir=`find  $PythonDir -name "libpython*.a"|grep $PyVer|tail -1`
 IncludeDir=`find  $PythonDir -name "Python.h"|tail -1`
 IncludeDir=${IncludeDir%/*}
+echo $pythonLocation
+echo $LibDir
+echo $IncludeDir
 
 # Python
 mkdir build && cd build
