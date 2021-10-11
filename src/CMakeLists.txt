@@ -177,7 +177,7 @@ if(NOT USE_SYSTEM_NCNN)
 endif()
 
 add_library(waifu2x_vulkan SHARED waifu2x_main.cpp waifu2x.cpp waifu2x_py.cpp )
-set(WAIFU2X_LINK_LIBRARIES ncnn ${Vulkan_LIBRARY} ${PYTHON_LIBRARY})
+set(WAIFU2X_LINK_LIBRARIES ncnn ${Vulkan_LIBRARY} ${PYTHON_LIBRARIES})
 
 if(USE_STATIC_MOLTENVK)
     find_library(CoreFoundation NAMES CoreFoundation)
