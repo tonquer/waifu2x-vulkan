@@ -14,12 +14,17 @@ find 1.2.162.0 -type f | grep -v -E 'vulkan|glslang' | xargs rm
 # Python x86_64
 export VULKAN_SDK=`pwd`/1.2.162.0/x86_64
 mkdir build && cd build
+VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
+PythonBin=`which python3`
+echo $VERSION
+echo $PythonBin
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_VULKAN=ON \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
-      -DPYTHON_INCLUDE_DIRS=/usr/include/python3.7m/ \
-      -DPYTHON_LIBRARY= /usr/local/python3/lib/libpython3.7m.a \
+      -DPYTHON_EXECUTABLE=${PythonBin}  \
+      -DPYBIND11_FINDPYTHON=OFF \
+      -DPYBIND11_PYTHON_VERSION=$VERSION \
       ../src
 cmake --build . -j 2
 cp libwaifu2x_vulkan.so waifu2x_vulkan.so

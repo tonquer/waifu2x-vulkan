@@ -20,13 +20,15 @@ Remove-Item .\VulkanSDK\Demos, `
 
 # Python (x86_64)
 $Env:VULKAN_SDK=((Get-Location).Path + '\VulkanSDK')
+$V=python -V 2>&1
 mkdir build; Set-Location .\build\
 cmake -A x64 `
       -DNCNN_VULKAN=ON `
       -DNCNN_BUILD_TOOLS=OFF `
       -DNCNN_BUILD_EXAMPLES=OFF `
-      -DPYTHON_INCLUDE_DIRS="$($Env:pythonLocation + '\include')" `
-      -DPYTHON_LIBRARY="$($Env:pythonLocation + '\libs\python37.lib')" `
+      -DPYTHON_EXECUTABLE="C:\Python37\python.exe" `
+      -DPYBIND11_FINDPYTHON=OFF `
+      -DPYBIND11_PYTHON_VERSION=($V -split " ")[1] `
       ..\src
 cmake --build . --config Release -j 2
 Set-Location .\Release\

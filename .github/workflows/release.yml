@@ -24,7 +24,7 @@ jobs:
           echo "::set-output name=TAG_NAME::${TAG_NAME}"
           echo "::set-output name=HEAD_SHA_SHORT::${HEAD_SHA_SHORT}"
 
-  ubuntu:
+  ubuntu-py39:
     needs: [setup]
     runs-on: ubuntu-latest
     env:
@@ -56,12 +56,17 @@ jobs:
         run: |
           export VULKAN_SDK=`pwd`/1.2.162.0/x86_64
           mkdir build && cd build
+          VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
+          PythonBin=`which python3`
+          echo $VERSION
+          echo $PythonBin
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DNCNN_VULKAN=ON \
                 -DNCNN_BUILD_TOOLS=OFF \
                 -DNCNN_BUILD_EXAMPLES=OFF \
-                -DPYTHON_INCLUDE_DIRS=/usr/include/python3.9m/ \
-                -DPYTHON_LIBRARY= /usr/local/python3/lib/libpython3.9m.a \
+                -DPYTHON_EXECUTABLE=${PythonBin}  \
+                -DPYBIND11_FINDPYTHON=OFF \
+                -DPYBIND11_PYTHON_VERSION=$VERSION \
                 ../src
           cmake --build . -j 2
           cp libwaifu2x_vulkan.so waifu2x_vulkan.so
@@ -123,110 +128,7 @@ jobs:
           name: openmp-macos
           path: openmp-install
 
-  macos:
-    needs: [setup, openmp-macos]
-    runs-on: macos-latest
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
-      PACKAGENAME: ${{ needs.setup.outputs.PACKAGE_PREFIX }}-py38-macos-x86_64-arm64
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
-      - name: download-openmp-macos
-        uses: actions/download-artifact@v2
-        with:
-          name: openmp-macos
-          path: openmp-macos
-      - name: install-openmp
-        run: |
-          sudo cp openmp-macos/include/* \
-                  $DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
-          sudo cp openmp-macos/lib/libomp.a \
-                  $DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib
-      - name: cache-vulkansdk
-        id: cache-vulkansdk
-        uses: actions/cache@v1
-        with:
-          path: "vulkansdk-macos-1.2.162.0"
-          key: vulkansdk-macos-1.2.162.0
-      - name: vulkansdk
-        if: steps.cache-vulkansdk.outputs.cache-hit != 'true'
-        run: |
-          wget 'https://sdk.lunarg.com/sdk/download/1.2.162.0/mac/vulkansdk-macos-1.2.162.0.dmg?Human=true' \
-               -O vulkansdk-macos-1.2.162.0.dmg
-          hdiutil attach vulkansdk-macos-1.2.162.0.dmg
-          cp -r /Volumes/vulkansdk-macos-1.2.162.0 .
-          rm -rf vulkansdk-macos-1.2.162.0/Applications
-          find vulkansdk-macos-1.2.162.0 -type f | grep -v -E 'vulkan|glslang|MoltenVK' | xargs rm
-          hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
-      - name: build-x86_64
-        run: |
-          export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
-          VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
-          PyVer=${Version:0:3}
-          mkdir build-x86_64 && cd build-x86_64
-          cmake -DCMAKE_BUILD_TYPE=Release \
-                -DNCNN_VULKAN=ON \
-                -DNCNN_BUILD_TOOLS=OFF \
-                -DNCNN_BUILD_EXAMPLES=OFF \
-                -DUSE_STATIC_MOLTENVK=ON \
-                -DPYTHON_INCLUDE_DIRS=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/include/python${PyVer} \
-                -DPYTHON_LIBRARY=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/lib/python${PyVer}/config-${PyVer}-darwin/libpython${PyVer}.a \
-                -DCMAKE_SYSTEM_PROCESSOR=x86_64 \
-                -DCMAKE_OSX_ARCHITECTURES=x86_64 \
-                -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
-                -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
-                -DOpenMP_C_LIB_NAMES="libomp"\
-                -DOpenMP_CXX_LIB_NAMES="libomp" \
-                -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libomp.a" \
-                -DVulkan_INCLUDE_DIR=$VULKAN_SDK/../MoltenVK/include \
-                -DVulkan_LIBRARY=$VULKAN_SDK/../MoltenVK/MoltenVK.xcframework/macos-arm64_x86_64/libMoltenVK.a \
-                ../src
-          cmake --build . -j 2
-      - name: build-arm64
-        run: |
-          VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
-          PyVer=${Version:0:3}
-          export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
-          mkdir build-arm64 && cd build-arm64
-          cmake -DCMAKE_BUILD_TYPE=Release \
-                -DNCNN_VULKAN=ON \
-                -DNCNN_BUILD_TOOLS=OFF \
-                -DNCNN_BUILD_EXAMPLES=OFF \
-                -DUSE_STATIC_MOLTENVK=ON \
-                -DPYTHON_INCLUDE_DIRS=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/include/python${PyVer} \
-                -DPYTHON_LIBRARY=/usr/local/Cellar/python@${PyVer}/${VERSION}/Frameworks/Python.framework/Versions/${PyVer}/lib/python${PyVer}/config-${PyVer}-darwin/libpython${PyVer}.a \
-                -DCMAKE_CROSSCOMPILING=ON \
-                -DCMAKE_SYSTEM_PROCESSOR=arm64 \
-                -DCMAKE_OSX_ARCHITECTURES=arm64 \
-                -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
-                -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
-                -DOpenMP_C_LIB_NAMES="libomp"\
-                -DOpenMP_CXX_LIB_NAMES="libomp" \
-                -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libomp.a" \
-                -DVulkan_INCLUDE_DIR=$VULKAN_SDK/../MoltenVK/include \
-                -DVulkan_LIBRARY=$VULKAN_SDK/../MoltenVK/MoltenVK.xcframework/macos-arm64_x86_64/libMoltenVK.a \
-                ../src
-          cmake --build . -j 2
-      - name: build
-        run: |
-          lipo -create build-x86_64/libwaifu2x_vulkan.dylib build-arm64/libwaifu2x_vulkan.dylib -o waifu2x_vulkan.so
-          strip -x waifu2x_vulkan.so
-      - name: package
-        run: |
-          mkdir -p ${{ env.PACKAGENAME }}
-          cp README.md LICENSE ${{ env.PACKAGENAME }}
-          cp waifu2x_vulkan.so ${{ env.PACKAGENAME }}
-          cp -r models test ${{ env.PACKAGENAME }}
-          zip -9 -r $PACKAGENAME.zip $PACKAGENAME
-      - name: upload
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.PACKAGENAME }}
-          path: ${{ env.PACKAGENAME }}.zip
-
-  macos-script:
+  macos-script-py39:
     needs: [setup]
     runs-on: macos-latest
     env:
@@ -236,6 +138,10 @@ jobs:
         with:
           submodules: 'recursive'
           fetch-depth: '0'
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
       - name: run-build-script
         run: |
           bash build_mac.sh
@@ -251,7 +157,7 @@ jobs:
           name: ${{ env.PACKAGENAME }}
           path: ${{ env.PACKAGENAME }}.zip
 
-  windows:
+  windows-py39:
     needs: [setup]
     runs-on: windows-latest
     env:
@@ -289,11 +195,14 @@ jobs:
         run: |
           $Env:VULKAN_SDK=((Get-Location).Path + '\VulkanSDK')
           mkdir build; Set-Location .\build\
+          $V=python -V 2>&1
           cmake -A x64 `
                 -DNCNN_VULKAN=ON `
                 -DNCNN_BUILD_TOOLS=OFF `
                 -DNCNN_BUILD_EXAMPLES=OFF `
                 -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
+                -DPYBIND11_FINDPYTHON=OFF `
+                -DPYBIND11_PYTHON_VERSION=($V -split " ")[1] `
                 ..\src
           Copy-Item -Verbose -Path "$($Env:pythonLocation + '\libs\python39.lib')" -Destination "$((Get-Location).Path)"
           cmake --build . --config Release -j 2
@@ -339,17 +248,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PACKAGENAME: ${{ needs.setup.outputs.PACKAGE_PREFIX }}-py39-ubuntu-x86_64
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/${{ env.PACKAGENAME }}/${{ env.PACKAGENAME }}.zip
-          asset_name: ${{ env.PACKAGENAME }}.zip
-          asset_content_type: application/zip
-
-      - name: upload-macos-py38
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGENAME: ${{ needs.setup.outputs.PACKAGE_PREFIX }}-py38-macos-x86_64-arm64
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: artifacts/${{ env.PACKAGENAME }}/${{ env.PACKAGENAME }}.zip

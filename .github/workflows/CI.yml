@@ -48,21 +48,17 @@ jobs:
         run: |
           export VULKAN_SDK=`pwd`/1.2.162.0/x86_64
           mkdir build && cd build
-          echo $pythonLocation
-          LibDir=`find  $pythonLocation -name "libpython*.a"|tail -1`
-          IncludeDir=`find  $pythonLocation -name "Python.h"|tail -1`
-          IncludeDir=${IncludeDir%/*}
+          VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
           PythonBin=`which python3`
-          echo $LibDir
-          echo $IncludeDir
+          echo $VERSION
           echo $PythonBin
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DNCNN_VULKAN=ON \
                 -DNCNN_BUILD_TOOLS=OFF \
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DPYTHON_EXECUTABLE=${PythonBin}  \
-                -DPYTHON_INCLUDE_DIRS=${IncludeDir} \
-                -DPYTHON_LIBRARY=${LibDir} \
+                -DPYBIND11_FINDPYTHON=OFF \
+                -DPYBIND11_PYTHON_VERSION=$VERSION \
                 ../src
           cmake --build . -j 2
           cp libwaifu2x_vulkan.so waifu2x_vulkan.so
@@ -166,16 +162,9 @@ jobs:
           hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
       - name: build-x86_64
         run: |
-          brew install gettext
-          brew link gettext --force
-          export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
-          LibDir=`find  $pythonLocation -name "libpython*.a"|tail -1`
-          IncludeDir=`find  $pythonLocation -name "Python.h"|tail -1`
-          IncludeDir=${IncludeDir%/*}
+          VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
           PythonBin=`which python3`
-          echo $pythonLocation
-          echo $LibDir
-          echo $IncludeDir
+          echo $VERSION
           echo $PythonBin
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
@@ -184,8 +173,8 @@ jobs:
                 -DNCNN_BUILD_EXAMPLES=OFF \
                 -DUSE_STATIC_MOLTENVK=ON \
                 -DPYTHON_EXECUTABLE=${PythonBin} \
-                -DPYTHON_INCLUDE_DIRS=${IncludeDir} \
-                -DPYTHON_LIBRARY=${LibDir} \
+                -DPYBIND11_FINDPYTHON=OFF \
+                -DPYBIND11_PYTHON_VERSION=$VERSION \
                 -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
                 -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
                 -DOpenMP_C_LIB_NAMES="libomp"\
@@ -249,14 +238,14 @@ jobs:
         run: |
           $Env:VULKAN_SDK=((Get-Location).Path + '\VulkanSDK')
           $V=python -V 2>&1
-
           mkdir build; Set-Location .\build\
           cmake -A x64 `
                 -DNCNN_VULKAN=ON `
                 -DNCNN_BUILD_TOOLS=OFF `
                 -DNCNN_BUILD_EXAMPLES=OFF `
-                -DPYTHON_INCLUDE_DIRS="$($Env:pythonLocation + '\include')" `
-                -DPYTHON_LIBRARY="$($Env:pythonLocation + '\libs\python37.lib')" `
+                -DPYTHON_EXECUTABLE="$($Env:pythonLocation + '\python.exe')" `
+                -DPYBIND11_FINDPYTHON=OFF `
+                -DPYBIND11_PYTHON_VERSION=($V -split " ")[1] `
                 ..\src
           cmake --build . --config Release -j 2
           Set-Location .\Release\
