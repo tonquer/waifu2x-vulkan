@@ -15,11 +15,11 @@ fi
 
 # Python x86_64
 if [ ! -n "$PYTHON_BIN" ]; then
-      $PYTHON_BIN="${pythonLocation}/bin/python3"
+      PYTHON_BIN=${pythonLocation}/bin/python3
 fi
 
 if [ ! -n "$BUILD_PATH" ]; then
-      $BUILD_PATH="build"
+      BUILD_PATH="build"
 fi
 
 export VULKAN_SDK=`pwd`/1.2.162.0/x86_64

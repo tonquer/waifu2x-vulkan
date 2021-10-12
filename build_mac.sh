@@ -48,11 +48,11 @@ hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
 export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
 
 if [ ! -n "$PYTHON_BIN" ]; then
-      $PYTHON_BIN="${pythonLocation}/bin/python3"
+      PYTHON_BIN="${pythonLocation}/bin/python3"
 fi
 
 if [ ! -n "$BUILD_PATH" ]; then
-      $BUILD_PATH="build"
+      BUILD_PATH="build"
 fi
 
 VERSION=`${PYTHON_BIN} -V 2>&1 | cut -d " " -f 2`
