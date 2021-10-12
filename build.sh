@@ -15,7 +15,7 @@ fi
 
 # Python x86_64
 if [ ! -n "$PYTHON_BIN" ]; then
-      $PYTHON_BIN="{$pythonLocation}/bin/python3"
+      $PYTHON_BIN="${pythonLocation}/bin/python3"
 fi
 
 if [ ! -n "$BUILD_PATH" ]; then

@@ -46,7 +46,7 @@ cmake -A x64 `
       -DNCNN_VULKAN=ON `
       -DNCNN_BUILD_TOOLS=OFF `
       -DNCNN_BUILD_EXAMPLES=OFF `
-      -DPYTHON_EXECUTABLE=$Env:PYTHON_BIN `
+      -DPYTHON_EXECUTABLE="$Env:PYTHON_BIN" `
       -DPYBIND11_FINDPYTHON=OFF `
       ..\src
 cmake --build . --config Release -j 2
