@@ -174,7 +174,7 @@ jobs:
           .\build.ps1
           $pyDir="${{ env.PACKAGENAME }}/py36"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
       - name: install-python37
         uses: actions/setup-python@v2
         with:
@@ -185,7 +185,7 @@ jobs:
           .\build.ps1
           $pyDir="${{ env.PACKAGENAME }}/py37"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
       - name: install-python38
         uses: actions/setup-python@v2
         with:
@@ -196,7 +196,7 @@ jobs:
           .\build.ps1
           $pyDir="${{ env.PACKAGENAME }}/py38"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
       - name: install-python39
         uses: actions/setup-python@v2
         with:
@@ -207,7 +207,7 @@ jobs:
           .\build.ps1
           $pyDir="${{ env.PACKAGENAME }}/py39"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
       - name: package
         run: |
           mkdir ${{ env.PACKAGENAME }}

@@ -41,6 +41,7 @@ $V=&$Env:PYTHON_BIN -V 2>&1
 $V=$V.Replace("Python ","")
 echo $Env:PYTHON_BIN
 echo $V
+echo $oldPath
 mkdir -p $Env:BUILD_PATH; Set-Location .\$Env:BUILD_PATH\
 cmake -A x64 `
       -DNCNN_VULKAN=ON `

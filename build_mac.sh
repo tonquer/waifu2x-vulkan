@@ -4,7 +4,7 @@ TAG_NAME=$(git describe --abbrev=0 --tags)
 HEAD_SHA_SHORT=$(git rev-parse --short HEAD)
 PACKAGE_PREFIX=${LIB_NAME}-${TAG_NAME}_${HEAD_SHA_SHORT}
 PACKAGENAME1=${PACKAGE_PREFIX}-macos
-$oldPath=`pwd`
+oldPath=`pwd`
 # OpemMP
 if [ ! -d "openmp-11.0.0.src" ];then
       wget 'https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/openmp-11.0.0.src.tar.xz'
@@ -58,6 +58,7 @@ fi
 VERSION=`${PYTHON_BIN} -V 2>&1 | cut -d " " -f 2`
 echo $PYTHON_BIN
 echo $VERSION
+echo $oldPath
 
 # Python
 mkdir -p $BUILD_PATH && cd $BUILD_PATH
