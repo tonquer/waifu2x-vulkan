@@ -43,7 +43,7 @@ jobs:
           bash build.sh
           pyDir=$PACKAGENAME/py36
           mkdir -p $pyDir
-          cp $BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir
       - name: install-python37
         uses: actions/setup-python@v2
         with:
@@ -54,7 +54,7 @@ jobs:
           bash build.sh
           pyDir=$PACKAGENAME/py37
           mkdir -p $pyDir
-          cp $BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir
       - name: install-python38
         uses: actions/setup-python@v2
         with:
@@ -65,7 +65,7 @@ jobs:
           bash build.sh
           pyDir=$PACKAGENAME/py38
           mkdir -p $pyDir
-          cp $BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir
       - name: install-python39
         uses: actions/setup-python@v2
         with:
@@ -76,7 +76,7 @@ jobs:
           bash build.sh
           pyDir=$PACKAGENAME/py39
           mkdir -p $pyDir
-          cp $BUILD_PATH/Relese/waifu2x_vulkan.so $pyDir
+          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir
       - name: package
         run: |
           mkdir -p ${{ env.PACKAGENAME }}
@@ -103,7 +103,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
-      - name: run-build-script
+      - name: build36
         run: |
           export BUILD_PATH="build36"
           bash build_mac.sh
@@ -114,7 +114,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - name: run-build-script
+      - name: build37
         run: |
           export BUILD_PATH="build37"
           bash build_mac.sh
@@ -125,7 +125,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
-      - name: run-build-script
+      - name: build38
         run: |
           export BUILD_PATH="build38"
           bash build_mac.sh
@@ -136,7 +136,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
-      - name: run-build-script
+      - name: build39
         run: |
           export BUILD_PATH="build39"
           bash build_mac.sh
@@ -168,46 +168,46 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.6'
-      - name: build
+      - name: build36
         run: |
           $Env:BUILD_PATH='build36'
           .\build.ps1
-          $pyDir="${{ env.PACKAGENAME }}/py36"
+          $pyDir="${{ env.PACKAGENAME }}\py36"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
+          cp $Env:BUILD_PATH\Relese\waifu2x_vulkan.pyd $pyDir
       - name: install-python37
         uses: actions/setup-python@v2
         with:
           python-version: '3.7'
-      - name: build
+      - name: build37
         run: |
           $Env:BUILD_PATH='build37'
           .\build.ps1
-          $pyDir="${{ env.PACKAGENAME }}/py37"
+          $pyDir="${{ env.PACKAGENAME }}\py37"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
+          cp $Env:BUILD_PATH\Relese\waifu2x_vulkan.pyd $pyDir
       - name: install-python38
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
-      - name: build
+      - name: build38
         run: |
           $Env:BUILD_PATH='build38'
           .\build.ps1
-          $pyDir="${{ env.PACKAGENAME }}/py38"
+          $pyDir="${{ env.PACKAGENAME }}\py38"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
+          cp $Env:BUILD_PATH\Relese\waifu2x_vulkan.pyd $pyDir
       - name: install-python39
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
-      - name: build
+      - name: build39
         run: |
           $Env:BUILD_PATH='build39'
           .\build.ps1
-          $pyDir="${{ env.PACKAGENAME }}/py39"
+          $pyDir="${{ env.PACKAGENAME }}\py39"
           mkdir -p $pyDir
-          cp $Env:BUILD_PATH/Relese/waifu2x_vulkan.pyd $pyDir
+          cp $Env:BUILD_PATH\Relese\waifu2x_vulkan.pyd $pyDir
       - name: package
         run: |
           mkdir ${{ env.PACKAGENAME }}
