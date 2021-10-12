@@ -106,7 +106,7 @@ waifu2x_py_set_debug(PyObject* self, PyObject* args)
 static PyObject*
 waifu2x_py_set_path(PyObject* self, PyObject* args)
 {
-    const char* modelPath;
+    const char* modelPath = 0;
     int sts;
     if (!PyArg_ParseTuple(args, "|s", &modelPath))
         Py_RETURN_NONE;
