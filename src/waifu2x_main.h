@@ -150,6 +150,7 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout);
 int waifu2x_init();
 int waifu2x_init_set(int gpuId2, int threadNum);
+int waifu2x_init_path(const char*);
 int waifu2x_stop();
 int waifu2x_clear();
 int waifu2x_set_debug(bool);

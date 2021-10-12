@@ -25,6 +25,7 @@
 TaskQueue Toproc;
 TaskQueue Tosave;
 bool IsDebug = false;
+char ModelPath[1024];
 
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout = 10)
 {
@@ -287,25 +288,25 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
 
         if (noise2 == -1)
         {
-            sprintf(parampath, "models/%s/scale2.0x_model.param", name);
-            sprintf(modelpath, "models/%s/scale2.0x_model.bin", name);
+            sprintf(parampath, "%s/models/%s/scale2.0x_model.param", ModelPath, name);
+            sprintf(modelpath, "%s/models/%s/scale2.0x_model.bin", name);
         }
         else
         {
-            sprintf(parampath, "models/%s/noise%d_scale2.0x_model.param", name, noise2);
-            sprintf(modelpath, "models/%s/noise%d_scale2.0x_model.bin", name, noise2);
+            sprintf(parampath, "%s/models/%s/noise%d_scale2.0x_model.param", ModelPath, name, noise2);
+            sprintf(modelpath, "%s/models/%s/noise%d_scale2.0x_model.bin", ModelPath, name, noise2);
         }
     }
     else if (scale2 == 1) {
         if (noise2 == -1)
         {
-            sprintf(parampath, "models/%s/noise0_model.param", name);
-            sprintf(modelpath, "models/%s/noise0_model.bin", name);
+            sprintf(parampath, "%s/models/%s/noise0_model.param", ModelPath, name);
+            sprintf(modelpath, "%s/models/%s/noise0_model.bin", ModelPath, name);
         }
         else
         {
-            sprintf(parampath, "models/%s/noise%d_model.param", name, noise2);
-            sprintf(modelpath, "models/%s/noise%d_model.bin", name, noise2);
+            sprintf(parampath, "%s/models/%s/noise%d_model.param", ModelPath, name, noise2);
+            sprintf(modelpath, "%s/models/%s/noise%d_model.bin", ModelPath, name, noise2);
         }
     }
     int prepadding = 18;
@@ -407,6 +408,16 @@ int waifu2x_init()
 #endif
 
     return ncnn::create_gpu_instance();
+}
+
+int waifu2x_init_path(const char* modelPath2)
+{
+    if (modelPath2) 
+    { 
+        memset(ModelPath, 0, 1024);
+        strcpy(ModelPath, modelPath2);
+    };
+    return 0;
 }
 
 int waifu2x_init_set(int gpuId2, int threadNum)

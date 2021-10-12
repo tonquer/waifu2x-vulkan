@@ -40,6 +40,9 @@ static PyObject*
 waifu2x_py_version(PyObject* self, PyObject* args);
 
 static PyObject*
+waifu2x_py_set_path(PyObject* self, PyObject* args);
+
+static PyObject*
 waifu2x_py_get_info(PyObject* self, PyObject* args);
 
 PyMODINIT_FUNC
@@ -51,7 +54,7 @@ static PyMethodDef SpamMethods[] = {
     {"initSet",  (PyCFunction)waifu2x_py_init_set, METH_VARARGS | METH_KEYWORDS,
      "Init setting\ngpuId: getGpuInfo get index \nthreadNum: convert thread num \n"},
     {"add",  (PyCFunction)waifu2x_py_add, METH_VARARGS | METH_KEYWORDS,
-     "Add task, \ndata: img bytes \nmodelIndex: Model enum \nbackId: call back id \nformat: export fmt, support bmp png jpg ico \nwidth: export set width \nhigh: export set high \nscale: export set width and high\n"},
+     "Add task, \ndata: img bytes \nmodelIndex: Model enum \nbackId: call back id \nformat(Option): export fmt, support bmp png jpg ico \nwidth(Option): export set width \nhigh(Option): export set high \nscale(Option): export set width and high\n"},
     {"getGpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
      "Get gpu list\n"},
     {"remove",  (PyCFunction)waifu2x_py_remove, METH_VARARGS | METH_KEYWORDS,
@@ -65,9 +68,11 @@ static PyMethodDef SpamMethods[] = {
     {"stop",  waifu2x_py_stop, METH_VARARGS,
      "Kill thread\n"},
     {"getVersion",  waifu2x_py_version, METH_VARARGS,
-     "Get version\nProject: https://github.com/tonquer/waifu2x-ncnn-vulkan-python \nVersion: v1.0.3 \n"},
+     "Get version\nProject: https://github.com/tonquer/waifu2x-vulkan \nVersion: v1.3 \n"},
     {"setDebug",  waifu2x_py_set_debug, METH_VARARGS,
      "Set debug log\n True or False\n"},
+     {"setDefaultPath",  waifu2x_py_set_path, METH_VARARGS,
+     "Set model default path\n"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -82,5 +87,5 @@ static struct PyModuleDef spammodule = {
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "v1.0.3";
+static const char* Version = "v1.3";
 #endif 

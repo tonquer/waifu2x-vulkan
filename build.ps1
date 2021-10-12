@@ -4,6 +4,7 @@ $HEAD_SHA_SHORT=(git rev-parse --short HEAD)
 $PACKAGE_PREFIX=($LIB_NAME + '-' + $TAG_NAME + '_' + $HEAD_SHA_SHORT)
 $PACKAGENAME1=($PACKAGE_PREFIX + '-windows')
 
+$oldPath=$pwd
 # Vulkan SDK
 $TRUE_FALSE=(Test-Path ".\VulkanSDK")
 
@@ -24,28 +25,40 @@ if(! $TRUE_FALSE)
 }
 
 # Python (x86_64)
+# $Env:pythonLocation='C:\Python37'
 $Env:VULKAN_SDK=((Get-Location).Path + '\VulkanSDK')
-$V=python -V 2>&1
+if(! $Env:PYTHON_BIN)
+{
+  $Env:PYTHON_BIN="$($Env:pythonLocation + '\python.exe')"
+}
+
+if(! $Env:BUILD_PATH)
+{
+  $Env:BUILD_PATH="build"
+}
+
+$V=&$Env:PYTHON_BIN -V 2>&1
 $V=$V.Replace("Python ","")
-$PythonEx=cmd /c where python|select -first 1
-mkdir -p build; Set-Location .\build\
+echo $Env:PYTHON_BIN
+echo $V
+mkdir -p $Env:BUILD_PATH; Set-Location .\$Env:BUILD_PATH\
 cmake -A x64 `
       -DNCNN_VULKAN=ON `
       -DNCNN_BUILD_TOOLS=OFF `
       -DNCNN_BUILD_EXAMPLES=OFF `
-      -DPYTHON_EXECUTABLE=$PythonEx `
+      -DPYTHON_EXECUTABLE=$Env:PYTHON_BIN `
       -DPYBIND11_FINDPYTHON=OFF `
       ..\src
 cmake --build . --config Release -j 2
 Set-Location .\Release\
-Move-Item waifu2x_vulkan.dll waifu2x_vulkan.pyd
+Copy-Item waifu2x_vulkan.dll waifu2x_vulkan.pyd
 
 # Package
-Set-Location .\..\..\
+Set-Location $oldPath
 $PACKAGENAME=($PACKAGENAME1 + '-py' + $V)
 mkdir "$($PACKAGENAME)"
 Copy-Item -Verbose -Path "README.md" -Destination "$($PACKAGENAME)"
 Copy-Item -Verbose -Path "LICENSE" -Destination "$($PACKAGENAME)"
-Copy-Item -Verbose -Path "build\Release\waifu2x_vulkan.pyd" -Destination "$($PACKAGENAME)"
+Copy-Item -Verbose -Path "$Env:BUILD_PATH\Release\waifu2x_vulkan.pyd" -Destination "$($PACKAGENAME)"
 Copy-Item -Verbose -Recurse -Path "models" -Destination "$($PACKAGENAME)"
 Copy-Item -Verbose -Recurse -Path "test" -Destination "$($PACKAGENAME)"

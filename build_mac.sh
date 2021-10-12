@@ -4,7 +4,7 @@ TAG_NAME=$(git describe --abbrev=0 --tags)
 HEAD_SHA_SHORT=$(git rev-parse --short HEAD)
 PACKAGE_PREFIX=${LIB_NAME}-${TAG_NAME}_${HEAD_SHA_SHORT}
 PACKAGENAME1=${PACKAGE_PREFIX}-macos
-
+$oldPath=`pwd`
 # OpemMP
 if [ ! -d "openmp-11.0.0.src" ];then
       wget 'https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/openmp-11.0.0.src.tar.xz'
@@ -16,7 +16,7 @@ sed -i'' -e '/.size __kmp_unnamed_critical_addr/d' runtime/src/z_Linux_asm.S
 sed -i'' -e 's/__kmp_unnamed_critical_addr/___kmp_unnamed_critical_addr/g' runtime/src/z_Linux_asm.S
 
 # OpenMP
-mkdir -p build && cd build
+mkdir -p $BUILD_PATH && cd $BUILD_PATH
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=install \
       -DLIBOMP_ENABLE_SHARED=OFF \
@@ -46,22 +46,27 @@ find vulkansdk-macos-1.2.162.0 -type f | grep -v -E 'vulkan|glslang|MoltenVK' | 
 
 hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
 export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
-PythonDir=`which python3`
-PythonDir=${PythonDir%/*}/..
-VERSION=`python3 -V 2>&1 | cut -d " " -f 2`
-PyVer=${Version:0:3}
-PythonBin=`which python3`
-echo $PythonBin
+
+if [ ! -n "$PYTHON_BIN" ]; then
+      $PYTHON_BIN="{$pythonLocation}/bin/python3"
+fi
+
+if [ ! -n "$BUILD_PATH" ]; then
+      $BUILD_PATH="build"
+fi
+
+VERSION=`${PYTHON_BIN} -V 2>&1 | cut -d " " -f 2`
+echo $PYTHON_BIN
 echo $VERSION
 
 # Python
-mkdir -p build && cd build
+mkdir -p $BUILD_PATH && cd $BUILD_PATH
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_VULKAN=ON \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
       -DUSE_STATIC_MOLTENVK=ON \
-      -DPYTHON_EXECUTABLE=${PythonBin} \
+      -DPYTHON_EXECUTABLE=${PYTHON_BIN} \
       -DPYBIND11_FINDPYTHON=OFF \
       -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
       -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
@@ -77,8 +82,8 @@ strip -x waifu2x_vulkan.so
 
 # Package
 PACKAGENAME=${PACKAGENAME1}-py${VERSION}
-cd ..
+cd $oldPath
 mkdir -p $PACKAGENAME
 cp README.md LICENSE $PACKAGENAME
-cp build/waifu2x_vulkan.so $PACKAGENAME
+cp $BUILD_PATH/waifu2x_vulkan.so $PACKAGENAME
 cp -r models test $PACKAGENAME
