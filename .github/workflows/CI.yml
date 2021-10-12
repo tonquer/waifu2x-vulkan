@@ -145,7 +145,7 @@ jobs:
           cp $Env:BUILD_PATH\Release\waifu2x_vulkan.pyd $pyDir
       - name: package
         run: |
-          mkdir ${{ env.PACKAGENAME }}
+          mkdir -p ${{ env.PACKAGENAME }}
           Copy-Item -Verbose -Path "README.md" -Destination "${{ env.PACKAGENAME }}"
           Copy-Item -Verbose -Path "LICENSE" -Destination "${{ env.PACKAGENAME }}"
           Copy-Item -Verbose -Recurse -Path "models" -Destination "${{ env.PACKAGENAME }}"

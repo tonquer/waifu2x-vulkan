@@ -1,37 +1,71 @@
 # waifu2x-ncnn-vulkan-python
+- This is modified [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan), Export pyd and so files to Python
+- Support Linux, Windows, MacOs
+- Support JPG, PNG, BMP
+  
 - 这是修改了 [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan) 项目, 导出 pyd 和 so 文件给 Python 使用
 - 支持 Linux, Windows 和 macOS
-- 仅支持 JPG 和 PNG 图
-
-## 在 Python 中使用
-- 将生成的 waifu2x_vulkan.pyd (或者 waifu2x_vulkan.so) 放入代码目录或者 Python 安装目录 DLLs 文件夹 (win)
+- 支持 JPG 、 PNG、BMP 图
+- 
+# Install
 ```shell
-import waifu2x_vulkan
+pip install waifu2x_vulkan
 ```
 
-## 示例
+# Use
+```shell
+import waifu2x_vulkan
+
+# init
+waifu2x_vulkan.setDebug(True)
+sts = waifu2x_vulkan.init()
+assert sts==0
+gpuList = waifu2x_vulkan.getGpuInfo()
+print(gpuList)
+sts = waifu2x_vulkan.initSet(gpuId=0, threadNum=2)
+assert sts==0
+
+# add picture ...
+# waifu2x.add(...)
+
+# load picture...
+# newData, status, backId, tick = waifu2x.load(0)
+```
+
+## Example
+- [waifu2x-ncnn-vulkan-GUI](https://github.com/tonquer/waifu2x-ncnn-vulkan-GUI)
+- Plase see the example in the test directory
+
 - 使用该项目和 Qt 实现的 waifu2x GUI 小工具: [waifu2x-ncnn-vulkan-GUI](https://github.com/tonquer/waifu2x-ncnn-vulkan-GUI)
 - 请见 test 目录中的示例
 
-## 编译 (GitHub Actions)
-- 查看 [GitHub Actions](https://github.com/tonquer/waifu2x-vulkan/actions) 编译结果
+## Build (GitHub Actions)
+- Look [GitHub Actions](https://github.com/tonquer/waifu2x-vulkan/actions)
 
-## 编译 (Windows)
-1. 安装 CMake, Python 和 7z
-2. 克隆本仓库
+## Build (Windows)
+1. install CMake, Python, 7z
+2. git clone
 ````shell
 git clone https://github.com/tonquer/waifu2x-vulkan && cd waifu2x-vulkan
 git submodule update --init --recursive
 ````
-3. 安装Python，请注意勾选  
+3. Install Python，Please check select  
+````
 Download debugging symbols  
 Download debug binaries
-执行编译脚本 (使用 PowerShell)  
-. .\build.ps1
+````
+4. run (Use PowerShell) , set python path
+````shell
+$Env:PYTHON_BIN='C:\Python37\python.exe'
+.\build.ps1
+````
+
 ```
 * 部分用户可能需要安装 Vulkan 运行环境, 这取决于你的显卡驱动中是否包含 libvulkan.1.dll;\
   如果编译后 waifu2x 无法使用, 请尝试安装: [最新的 Vulkan Runtime (来自官方)](https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-runtime.exe)
-## 编译 (macOS)
+```
+
+## Build (macOS)
 1. 安装 [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12), [Homebrew](https://brew.sh/), CMake 和 Python
 ````shell
 brew install cmake python@3.9
@@ -57,7 +91,7 @@ hash -r
 install_name_tool -change @rpath/Python3.framework/Versions/3.8/Python3 @loader_path/Python3 waifu2x.so
 ````
 -->
-## 编译 (Linux)
+## Build (Linux)
 1. 安装所需的软件包 (Ubuntu)
 * P.S. 对于其他的发行版, 请自行寻找这些软件包所对应的名称, 然后使用软件包管理器手动安装它们
 ````shell
