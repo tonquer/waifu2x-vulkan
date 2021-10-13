@@ -69,12 +69,29 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
     if (IsInitSet) return PyLong_FromLong(0);
     int gpuId = 0;
     int threadNum = 0;
-    char* kwarg_names[] = { "gpuId","threadNum", NULL };
+    int noSetDefaultPath = 0;
+    char* kwarg_names[] = { "gpuId","threadNum", "noDefaultPath", NULL };
     int sts;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii", kwarg_names, &gpuId, &threadNum))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|i", kwarg_names, &gpuId, &threadNum, &noSetDefaultPath))
         return PyLong_FromLong(-1);
+    
+    if (!noSetDefaultPath)
+    {
+        PyObject* pyModule = PyImport_ImportModule("waifu2x_vulkan");
+        PyObject* v = PyObject_GetAttrString(pyModule, "__file__");
 
+        PyObject* pathModule = PyImport_ImportModule("os.path");
+        PyObject* func = PyObject_GetAttrString(pathModule, "dirname");
+
+        PyObject* pyargs = PyTuple_New(1);
+        PyTuple_SET_ITEM(pyargs, 0, v);
+        PyObject* rel = PyObject_CallObject(func, pyargs);
+
+        const char* path = NULL;
+        PyArg_Parse(rel, "s", &path);
+        sts = waifu2x_init_path(path);
+    }
     sts = waifu2x_init_set(gpuId, threadNum);
     if (!sts) IsInitSet = true;
     return PyLong_FromLong(sts);

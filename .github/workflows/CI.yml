@@ -40,17 +40,6 @@ jobs:
           mkdir -p $pyDir
           cp $BUILD_PATH/waifu2x_vulkan.so $pyDir
       
-      - name: install-python39
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-      - name: build39
-        run: |
-          export BUILD_PATH="build39"
-          bash build.sh
-          pyDir=$PACKAGENAME/py39
-          mkdir -p $pyDir
-          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir
       - name: package
         run: |
           mkdir -p ${{ env.PACKAGENAME }}
@@ -85,19 +74,7 @@ jobs:
           bash build_mac.sh
           pyDir=$PACKAGENAME/py37
           mkdir -p $pyDir
-          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir
-      
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - name: run-build-script
-        run: |
-          export BUILD_PATH="build39"
-          bash build_mac.sh
-          pyDir=$PACKAGENAME/py39
-          mkdir -p $pyDir
-          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir                    
+          cp $BUILD_PATH/waifu2x_vulkan.so $pyDir            
       - name: rename-and-package
         run: |
           mkdir -p ${{ env.PACKAGENAME }}
@@ -129,18 +106,6 @@ jobs:
           $Env:BUILD_PATH='build37'
           .\build.ps1
           $pyDir="${{ env.PACKAGENAME }}\py37"
-          mkdir -p $pyDir
-          cp $Env:BUILD_PATH\Release\waifu2x_vulkan.pyd $pyDir
-
-      - name: install-python39
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-      - name: build39
-        run: |
-          $Env:BUILD_PATH='build39'
-          .\build.ps1
-          $pyDir="${{ env.PACKAGENAME }}\py39"
           mkdir -p $pyDir
           cp $Env:BUILD_PATH\Release\waifu2x_vulkan.pyd $pyDir
       - name: package
