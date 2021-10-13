@@ -1,14 +1,11 @@
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-project(waifu2x-ncnn-vulkan-python)
+project(waifu2x-vulkan)
 
 cmake_minimum_required(VERSION 3.9)
 
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-
 
 option(USE_SYSTEM_NCNN "build with system libncnn" OFF)
 option(USE_STATIC_MOLTENVK "link moltenvk static library" OFF)
@@ -18,11 +15,10 @@ find_package(OpenMP)
 find_package(Vulkan REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-add_subdirectory(pybind11)
-include_directories(${pybind11_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
+include_directories(${PYTHON_INCLUDE_DIRS})
 
-message("include " ${pybind11_INCLUDE_DIRS})
 message("include " ${PYTHON_INCLUDE_DIRS})
+message("include " ${PYTHON_LIBRARIES})
 
 if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")

@@ -3,7 +3,7 @@ LIB_NAME=waifu2x-vulkan
 TAG_NAME=$(git describe --abbrev=0 --tags)
 HEAD_SHA_SHORT=$(git rev-parse --short HEAD)
 PACKAGE_PREFIX=${LIB_NAME}-${TAG_NAME}_${HEAD_SHA_SHORT}
-PACKAGENAME1=${PACKAGE_PREFIX}-macos
+PACKAGENAME=${PACKAGE_PREFIX}-macos
 oldPath=`pwd`
 # OpemMP
 if [ ! -d "openmp-11.0.0.src" ];then
@@ -16,7 +16,7 @@ sed -i'' -e '/.size __kmp_unnamed_critical_addr/d' runtime/src/z_Linux_asm.S
 sed -i'' -e 's/__kmp_unnamed_critical_addr/___kmp_unnamed_critical_addr/g' runtime/src/z_Linux_asm.S
 
 # OpenMP
-mkdir -p $BUILD_PATH && cd $BUILD_PATH
+mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=install \
       -DLIBOMP_ENABLE_SHARED=OFF \
@@ -47,18 +47,23 @@ find vulkansdk-macos-1.2.162.0 -type f | grep -v -E 'vulkan|glslang|MoltenVK' | 
 hdiutil detach /Volumes/vulkansdk-macos-1.2.162.0
 export VULKAN_SDK=`pwd`/vulkansdk-macos-1.2.162.0/macOS
 
+# Python x86_64
 if [ ! -n "$PYTHON_BIN" ]; then
-      PYTHON_BIN="${pythonLocation}/bin/python3"
+      PYTHON_BIN=`which python3`
 fi
-
-if [ ! -n "$BUILD_PATH" ]; then
-      BUILD_PATH="build"
-fi
+PYTHON_DIR=`dirname $PYTHON_BIN`/../
 
 VERSION=`${PYTHON_BIN} -V 2>&1 | cut -d " " -f 2`
-echo $PYTHON_BIN
+VERSION_INFO=${VERSION:0:3}
+
+PYTHON_LIBRARIES=`find $PYTHON_DIR /lib64 -name "libpython${VERSION_INFO}*.a"|tail -1`
+PYTHON_INCLUDE=`find $PYTHON_DIR -name "Python.h"|tail -1`
+PYTHON_INCLUDE_DIRS=`dirname $PYTHON_INCLUDE`
+
 echo $VERSION
-echo $oldPath
+echo $PYTHON_BIN
+echo $PYTHON_LIBRARIES
+echo $PYTHON_INCLUDE_DIRS
 
 # Python
 mkdir -p $BUILD_PATH && cd $BUILD_PATH
@@ -67,8 +72,8 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DNCNN_BUILD_TOOLS=OFF \
       -DNCNN_BUILD_EXAMPLES=OFF \
       -DUSE_STATIC_MOLTENVK=ON \
-      -DPYTHON_EXECUTABLE=${PYTHON_BIN} \
-      -DPYBIND11_FINDPYTHON=OFF \
+      -DPYTHON_LIBRARIES=$PYTHON_LIBRARIES \
+      -DPYTHON_INCLUDE_DIRS=$PYTHON_INCLUDE_DIRS \
       -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
       -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
       -DOpenMP_C_LIB_NAMES="libomp"\
@@ -82,7 +87,6 @@ cp libwaifu2x_vulkan.dylib waifu2x_vulkan.so
 strip -x waifu2x_vulkan.so
 
 # Package
-PACKAGENAME=${PACKAGENAME1}-py${VERSION}
 cd $oldPath
 mkdir -p $PACKAGENAME
 cp README.md LICENSE $PACKAGENAME
