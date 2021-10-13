@@ -72,15 +72,16 @@ jobs:
       
       - name: build-python
         run: |
+          mkdir -p ../python3.7
           wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tar.xz
           tar -Jxvf Python-3.7.9.tar.xz
           cd Python-3.7.9
-          ./configure --prefix=/usr/local/python3.7 --enable-shared --enable-optimizations
+          ./configure --prefix=../python3.7 --enable-shared --enable-optimizations
           make && make install
           cd ..
       - name: build
         run: |
-          export PYTHON_BIN="/usr/local/python3.7/bin/python3"
+          export PYTHON_BIN="./python3.7/bin/python3"
           bash build_mac.sh
           mkdir -p ${{ env.PACKAGENAME }}
           cp $BUILD_PATH/waifu2x_vulkan.so ${{ env.PACKAGENAME }}
