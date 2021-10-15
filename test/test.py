@@ -4,10 +4,6 @@ import time
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
-    
-    # 设置models所在目录
-    # set models dir
-    waifu2x.setDefaultPath("..")
 
     # 初始化ncnn
     # init ncnn
