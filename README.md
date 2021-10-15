@@ -2,14 +2,10 @@
 - This is modified [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan), Export pyd and so files to Python
 - Support Linux, Windows, MacOs
 - Support JPG, PNG, BMP
-  
-- 这是修改了 [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan) 项目, 导出 pyd 和 so 文件给 Python 使用
-- 支持 Linux, Windows 和 macOS
-- 支持 JPG 、 PNG、BMP 图
 - 
 # Install
 ```shell
-pip install waifu2x_vulkan
+pip install waifu2x-vulkan
 ```
 
 # Use
@@ -33,14 +29,8 @@ assert sts==0
 ```
 
 ## Example
-- [waifu2x-ncnn-vulkan-GUI](https://github.com/tonquer/waifu2x-ncnn-vulkan-GUI)
-- Plase see the example in the test directory
-
-- 使用该项目和 Qt 实现的 waifu2x GUI 小工具: [waifu2x-ncnn-vulkan-GUI](https://github.com/tonquer/waifu2x-ncnn-vulkan-GUI)
-- 请见 test 目录中的示例
-
-## Build (GitHub Actions)
-- Look [GitHub Actions](https://github.com/tonquer/waifu2x-vulkan/actions)
+- Please see [waifu2x-ncnn-vulkan-GUI](https://github.com/tonquer/waifu2x-ncnn-vulkan-GUI)
+- Please see [test](https://github.com/tonquer/waifu2x-vulkan/blob/main/test/test.py) Example
 
 ## Build (Windows)
 1. install CMake, Python, 7z
@@ -61,7 +51,7 @@ $Env:PYTHON_BIN='C:\Python37\python.exe'
 ````
 
 ```
-* 部分用户可能需要安装 Vulkan 运行环境, 这取决于你的显卡驱动中是否包含 libvulkan.1.dll;\
+* 部分用户可能需要安装 Vulkan 运行环境, 这取决于你的显卡驱动中是否包含 vulkan.1.dll;\
   如果编译后 waifu2x 无法使用, 请尝试安装: [最新的 Vulkan Runtime (来自官方)](https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-runtime.exe)
 ```
 
@@ -87,8 +77,8 @@ export PATH=$DEVELOPER_DIR/Library/Frameworks/Python3.framework/Versions/3.8/bin
 hash -r
 ````
 * 在使用了 waifu2x 的项目中, 如果出现 pyinstaller 打包之后突然找不到依赖库的情况, 尝试进行:
-````shell
-install_name_tool -change @rpath/Python3.framework/Versions/3.8/Python3 @loader_path/Python3 waifu2x.so
+````shell Library not loaded: @rpath/Python3.framework/Versions/3.7/Python3
+install_name_tool -change @rpath/Python3.framework/Versions/3.7/Python3 @loader_path/Python3 waifu2x.so
 ````
 -->
 ## Build (Linux)

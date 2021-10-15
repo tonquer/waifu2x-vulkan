@@ -1,4 +1,5 @@
 recursive-include waifu2x_vulkan *.pyd
+recursive-include waifu2x_vulkan *.so
 recursive-include waifu2x_vulkan *.bin
 recursive-include waifu2x_vulkan *.param
 

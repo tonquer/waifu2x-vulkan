@@ -57,7 +57,7 @@ cmake -A x64 `
       -DPYTHON_LIBRARIES="$PYTHON_LIBRARIES" `
       -DPYTHON_INCLUDE_DIRS="$PYTHON_INCLUDE_DIRS" `
       ..\src
-cmake --build . --config Release -j 2
+cmake --build . --config Release
 Set-Location .\Release\
 Copy-Item -Force waifu2x_vulkan.dll waifu2x_vulkan.pyd
 

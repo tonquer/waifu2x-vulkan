@@ -24,7 +24,7 @@ PYTHON_DIR=`dirname $PYTHON_BIN`/../
 VERSION=`${PYTHON_BIN} -V 2>&1 | cut -d " " -f 2`
 VERSION_INFO=${VERSION:0:3}
 
-PYTHON_LIBRARIES=`find $PYTHON_DIR /lib64 -name "libpython${VERSION_INFO}*.a"|tail -1`
+PYTHON_LIBRARIES=`find $PYTHON_DIR -name "libpython${VERSION_INFO}*.a"|tail -1`
 PYTHON_INCLUDE=`find $PYTHON_DIR -name "Python.h"|tail -1`
 PYTHON_INCLUDE_DIRS=`dirname $PYTHON_INCLUDE`
 
@@ -40,7 +40,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DPYTHON_LIBRARIES=$PYTHON_LIBRARIES \
       -DPYTHON_INCLUDE_DIRS=$PYTHON_INCLUDE_DIRS \
       ../src
-cmake --build . -j 2
+cmake --build .
 cp libwaifu2x_vulkan.so waifu2x_vulkan.so
 strip -x waifu2x_vulkan.so
 

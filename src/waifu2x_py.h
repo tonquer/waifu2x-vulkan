@@ -1,12 +1,8 @@
-// #define PY_SSIZE_T_CLEAN
-
 #ifndef WAIFU2X_PY_H
 #define WAIFU2X_PY_H
-#if _WIN32
-    #include <python.h>
-#else
-    #include <Python.h>
-#endif
+
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 #include "waifu2x_main.h"
 
 static PyObject*

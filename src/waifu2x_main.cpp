@@ -25,7 +25,7 @@
 TaskQueue Toproc;
 TaskQueue Tosave;
 bool IsDebug = false;
-char ModelPath[1024];
+char ModelPath[1024] = {0};
 
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout = 10)
 {
@@ -49,11 +49,16 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     outSize = v.outSize;
 
     v.out = NULL;
+    clock_t encodeTick = v.encodeTick - v.startTick;
+    clock_t procTick = v.procTick - v.encodeTick;
+    clock_t decodeTick = v.saveTick - v.procTick;
+    clock_t allTick = v.saveTick - v.startTick;
+
     waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, encode:%f, proc:%f, decode:%f, \n",
-        v.callBack, (double)(v.encodeTick - v.startTick) / CLOCKS_PER_SEC,
-        (double)(v.procTick - v.encodeTick) / CLOCKS_PER_SEC,
-        (double)(v.saveTick - v.procTick) / CLOCKS_PER_SEC);
-    tick = (double)(v.saveTick - v.startTick) / CLOCKS_PER_SEC;
+        v.callBack, ((double)encodeTick) / CLOCKS_PER_SEC,
+        ((double)procTick) / CLOCKS_PER_SEC,
+        ((double)decodeTick) / CLOCKS_PER_SEC);
+    tick = ((double)allTick) / CLOCKS_PER_SEC;
     return v.id;
 }
 
@@ -408,6 +413,11 @@ int waifu2x_init()
 #endif
 
     return ncnn::create_gpu_instance();
+}
+
+char * waifu2x_get_path()
+{
+    return ModelPath;
 }
 
 int waifu2x_init_path(const char* modelPath2)

@@ -67,16 +67,16 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     if (!IsInit) return PyLong_FromLong(-1);
     if (IsInitSet) return PyLong_FromLong(0);
-    int gpuId = 0;
-    int threadNum = 0;
-    int noSetDefaultPath = 0;
+    Py_ssize_t  gpuId = 0;
+    Py_ssize_t  threadNum = 0;
+    Py_ssize_t  noSetDefaultPath = 0;
     char* kwarg_names[] = { "gpuId","threadNum", "noDefaultPath", NULL };
     int sts;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|i", kwarg_names, &gpuId, &threadNum, &noSetDefaultPath))
         return PyLong_FromLong(-1);
     
-    if (!noSetDefaultPath)
+    if (!noSetDefaultPath && strlen(waifu2x_get_path()) <= 0)
     {
         PyObject* pyModule = PyImport_ImportModule("waifu2x_vulkan");
         PyObject* v = PyObject_GetAttrString(pyModule, "__file__");
@@ -170,7 +170,7 @@ waifu2x_py_remove_wait(PyObject* self, PyObject* args, PyObject* kwargs)
     }
     std::set<int> taskIds;
     PyObject* list_item = NULL;
-    int taskId;
+    Py_ssize_t  taskId;
     for (int i = 0; i < list_len; i++)
     {
         list_item = PyList_GetItem(bufobj, i);
@@ -201,7 +201,7 @@ waifu2x_py_remove(PyObject* self, PyObject* args, PyObject* kwargs)
     }
     std::set<int> taskIds;
     PyObject* list_item = NULL;
-    int taskId;
+    Py_ssize_t  taskId;
     for (int i = 0; i < list_len; i++)
     {
         list_item = PyList_GetItem(bufobj, i);
@@ -223,11 +223,11 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
     const char* b = NULL;
     unsigned int size;
     int sts = 1;
-    int callBack;
-    int modelIndex = 0;
+    Py_ssize_t  callBack = 0;
+    Py_ssize_t  modelIndex = 0;
     const char* format = NULL;
-    int width = 0;
-    int high = 0;
+    Py_ssize_t  width = 0;
+    Py_ssize_t  high = 0;
     float scale = 0;
 
     char* kwarg_names[] = { "data","modelIndex","backId", "format", "width", "high", "scale", NULL };
@@ -274,7 +274,7 @@ waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
     if (!IsInitSet) Py_RETURN_NONE;
     void* out = NULL;
     unsigned long outSize = 0;
-    unsigned int block;
+    Py_ssize_t block = 0;
     double tick = 0;
     int callBack;
     char* kwarg_names[] = { "block", NULL };

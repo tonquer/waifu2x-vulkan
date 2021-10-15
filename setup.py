@@ -1,5 +1,5 @@
 import setuptools, sys, os
-from shutil import copyfile, copytree
+from shutil import copyfile, copytree, rmtree
 
 long_description = \
 """
@@ -11,7 +11,7 @@ long_description = \
 
 # Install
 ```shell
-pip install waifu2x_vulkan
+pip install waifu2x-vulkan
 ```
 
 # Use
@@ -39,6 +39,7 @@ assert sts==0
 
 """
 Version = "1.0.3"
+
 Plat = sys.platform
 for i in sys.argv:
     if "win" in i.lower():
@@ -48,43 +49,82 @@ for i in sys.argv:
     elif "linux" in i.lower():
         Plat = "linux"
 
-if os.path.exists("waifu2x_vulkan/waifu2x_vulkan.so"):
-    os.remove("waifu2x_vulkan/waifu2x_vulkan.so")
+print(Plat)
+if Plat not in ["darwin"]:
+    if os.path.exists("waifu2x_vulkan/waifu2x_vulkan.so"):
+        os.remove("waifu2x_vulkan/waifu2x_vulkan.so")
 
-if os.path.exists("waifu2x_vulkan/waifu2x_vulkan.pyd"):
-    os.remove("waifu2x_vulkan/waifu2x_vulkan.pyd")
+    if os.path.exists("waifu2x_vulkan/waifu2x_vulkan.pyd"):
+        os.remove("waifu2x_vulkan/waifu2x_vulkan.pyd")
 
-if Plat in ["win32", "win64"]:
-    src = "lib/{}/linux/waifu2x_vulkan.pyd".format(Version)
-    dest = "waifu2x_vulkan/waifu2x_vulkan.pyd"
-elif Plat in ["darwin"]:
-    src = "lib/{}/linux/waifu2x_vulkan.so".format(Version)
-    dest = "waifu2x_vulkan/waifu2x_vulkan.so"
-else:
-    src = "lib/{}/linux/waifu2x_vulkan.so".format(Version)
-    dest = "waifu2x_vulkan/waifu2x_vulkan.so"
+    if os.path.exists("build"):
+        rmtree(path="build")
 
-copyfile(src, dest)
-copytree("models", "waifu2x_vulkan/models")
+    if os.path.exists("waifu2x_vulkan.egg-info"):
+        rmtree(path="waifu2x_vulkan.egg-info")
 
+    if Plat in ["win32", "win64"]:
+        src = "lib/{}/windows/waifu2x_vulkan.pyd".format(Version)
+        dest = "waifu2x_vulkan/waifu2x_vulkan.pyd"
+    else:
+        src = "lib/{}/linux/waifu2x_vulkan.so".format(Version)
+        dest = "waifu2x_vulkan/waifu2x_vulkan.so"
+
+    copyfile(src, dest)
+
+if not os.path.exists("waifu2x_vulkan/models"):
+    copytree("models", "waifu2x_vulkan/models")
+
+from distutils.core import setup, Extension
+example_module = Extension('waifu2x_vulkam/waifu2x_vulkan',
+# include_dirs=["src/", "src/ncnn/src/", "build/ncnn/src/", "vulkansdk-macos-1.2.162.0/macOS/include"],
+include_dirs=["extra/macos/", "extra/macos/ncnn", "extra/macos/ncnn_build", "extra/macos/vulkan"],
+sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
+extra_objects=[
+    "extra/macos/libncnn.a",
+    "extra/macos/libMachineIndependent.a",
+    "extra/macos/libOGLCompiler.a",
+    "extra/macos/libOSDependent.a",
+    "extra/macos/libGenericCodeGen.a",
+    "extra/macos/libglslang.a",
+    "extra/macos/libSPIRV.a",
+    "extra/macos/libMoltenVK.a",
+    "extra/macos/libomp.a",
+    "-framework", "Metal",
+    "-framework", "QuartzCore",
+    "-framework", "CoreGraphics",
+    "-framework", "Cocoa",
+    "-framework", "IOKit",
+    "-framework", "IOSurface",
+    "-framework", "Foundation",
+    "-framework", "CoreFoundation",
+],
+extra_compile_args=[
+    "-std=c++11"
+],
+)
 setuptools.setup(
     name="waifu2x-vulkan",
     version=Version,
     author="tonquer",
     author_email="tonquer@outlook.com",
-    description="A waifu2x vulkan tool",
+    description="A waifu2x tool, use vulkan.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tonquer/waifu2x-vulkan",
     packages=setuptools.find_packages(),
     install_requires=[],
     classifiers=[
+        "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Operating System :: POSIX :: Linux"
-        "Operating System :: Microsoft :: Windows"
-        "Operating System :: MacOS"
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     ],
     python_requires = ">=3.6",
     include_package_data=True,
+    ext_modules=[example_module]
 )
