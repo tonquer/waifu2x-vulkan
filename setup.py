@@ -1,5 +1,8 @@
 import setuptools, sys, os
 from shutil import copyfile, copytree, rmtree
+from setuptools.command.build_ext import build_ext
+import subprocess
+from distutils.core import Extension
 
 long_description = \
 """
@@ -41,72 +44,179 @@ assert sts==0
 Version = "1.0.3"
 
 Plat = sys.platform
-for i in sys.argv:
-    if "win" in i.lower():
-        Plat = "win32"
-    elif "macos" in i.lower():
-        Plat = "darwin"
-    elif "linux" in i.lower():
-        Plat = "linux"
 
 print(Plat)
-if Plat not in ["darwin"]:
-    if os.path.exists("waifu2x_vulkan/waifu2x_vulkan.so"):
-        os.remove("waifu2x_vulkan/waifu2x_vulkan.so")
 
-    if os.path.exists("waifu2x_vulkan/waifu2x_vulkan.pyd"):
-        os.remove("waifu2x_vulkan/waifu2x_vulkan.pyd")
+build_temp = "build/temp/"
+if Plat == "darwin":
+    example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
+    include_dirs=["src/", "src/ncnn/src", "build/temp/src", "VulkanSDK/macos/include"],
+    sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
+    extra_objects=[
+        build_temp + "/src/libncnn.a",
+        build_temp + "/glslang/glslang/libMachineIndependent.a",
+        build_temp + "/glslang/OGLCompilersDLL/libOGLCompiler.a",
+        build_temp + "/glslang/glslang/OSDependent/Unix/libOSDependent.a",
+        build_temp + "/glslang/glslang/libGenericCodeGen.a",
+        build_temp + "/glslang/glslang/libglslang.a",
+        build_temp + "/glslang/SPIRV/libSPIRV.a",
+        "VulkanSDK/macos/libMoltenVK.a",
+        "VulkanSDK/macos/libomp.a",
+        "-framework", "Metal",
+        "-framework", "QuartzCore",
+        "-framework", "CoreGraphics",
+        "-framework", "Cocoa",
+        "-framework", "IOKit",
+        "-framework", "IOSurface",
+        "-framework", "Foundation",
+        "-framework", "CoreFoundation",
+    ],
+    )
+    models = [example_module]
+elif Plat in ["win32", "win64"]:
+    example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
+    include_dirs=["src/", "src/ncnn/src", "build/temp/src", "VulkanSDK/Include"],
+    sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
+    define_macros=[("WIN32",1), ("NOMINMAX",1), ("NDEBUG",1)],
+    extra_objects=[
+        build_temp + "/src/Release/ncnn.lib",
+        build_temp + "/glslang/glslang/Release/MachineIndependent.lib",
+        build_temp + "/glslang/OGLCompilersDLL/Release/OGLCompiler.lib",
+        build_temp + "/glslang/glslang/OSDependent/Windows/Release/OSDependent.lib",
+        build_temp + "/glslang/glslang/Release/GenericCodeGen.lib",
+        build_temp + "/glslang/glslang/Release/glslang.lib",
+        build_temp + "/glslang/SPIRV/Release/SPIRV.lib",
+        "VulkanSDK/windows/vulkan-1.lib",
+    ],
+    )
+    models = [example_module]
+else:
+    # linux
+    example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
+    include_dirs=["src/", "src/ncnn/src", "build/temp/src", "VulkanSDK/Include"],
+    sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
+    extra_objects=[
+        build_temp + "/src/libncnn.a",
+        build_temp + "/glslang/glslang/libMachineIndependent.a",
+        build_temp + "/glslang/OGLCompilersDLL/libOGLCompiler.a",
+        build_temp + "/glslang/glslang/OSDependent/Unix/libOSDependent.a",
+        build_temp + "/glslang/glslang/libGenericCodeGen.a",
+        build_temp + "/glslang/glslang/libglslang.a",
+        build_temp + "/glslang/SPIRV/libSPIRV.a",
+        "VulkanSDK/linux/libvulkan.so",
+    ],
+    libraries=["gomp"],
+    extra_compile_args=["-fopenmp"],
+    extra_link_args=["-fopenmp"],
+    
+    )
+    models = [example_module]
 
-    if os.path.exists("build"):
-        rmtree(path="build")
+PLAT_TO_CMAKE = {
+    "win32": "Win32",
+    "win-amd64": "x64",
+    "win-arm32": "ARM",
+    "win-arm64": "ARM64",
+}
 
-    if os.path.exists("waifu2x_vulkan.egg-info"):
-        rmtree(path="waifu2x_vulkan.egg-info")
+class CMakeBuild(build_ext):
+    def build_extension(self, ext):
+        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+        extdir = os.path.join(extdir, "ncnn")
 
-    if Plat in ["win32", "win64"]:
-        src = "lib/{}/windows/waifu2x_vulkan.pyd".format(Version)
-        dest = "waifu2x_vulkan/waifu2x_vulkan.pyd"
-    else:
-        src = "lib/{}/linux/waifu2x_vulkan.so".format(Version)
-        dest = "waifu2x_vulkan/waifu2x_vulkan.so"
+        # required for auto-detection of auxiliary "native" libs
+        if not extdir.endswith(os.path.sep):
+            extdir += os.path.sep
 
-    copyfile(src, dest)
+        cfg = "Debug" if self.debug else "Release"
 
-if not os.path.exists("waifu2x_vulkan/models"):
-    copytree("models", "waifu2x_vulkan/models")
+        # CMake lets you override the generator - we need to check this.
+        # Can be set with Conda-Build, for example.
+        cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
 
-from distutils.core import setup, Extension
-example_module = Extension('waifu2x_vulkam/waifu2x_vulkan',
-# include_dirs=["src/", "src/ncnn/src/", "build/ncnn/src/", "vulkansdk-macos-1.2.162.0/macOS/include"],
-include_dirs=["extra/macos/", "extra/macos/ncnn", "extra/macos/ncnn_build", "extra/macos/vulkan"],
-sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
-extra_objects=[
-    "extra/macos/libncnn.a",
-    "extra/macos/libMachineIndependent.a",
-    "extra/macos/libOGLCompiler.a",
-    "extra/macos/libOSDependent.a",
-    "extra/macos/libGenericCodeGen.a",
-    "extra/macos/libglslang.a",
-    "extra/macos/libSPIRV.a",
-    "extra/macos/libMoltenVK.a",
-    "extra/macos/libomp.a",
-    "-framework", "Metal",
-    "-framework", "QuartzCore",
-    "-framework", "CoreGraphics",
-    "-framework", "Cocoa",
-    "-framework", "IOKit",
-    "-framework", "IOSurface",
-    "-framework", "Foundation",
-    "-framework", "CoreFoundation",
-],
-extra_compile_args=[
-    "-std=c++11"
-],
-)
+        # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
+        # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
+        # from Python.
+        cmake_args = [
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(extdir),
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE={}".format(extdir),
+            "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
+            "-DNCNN_VULKAN=ON",
+            "-DNCNN_BUILD_BENCHMARK=OFF",
+            "-DNCNN_BUILD_EXAMPLES=OFF",
+            "-DNCNN_BUILD_TOOLS=OFF",
+        ]
+        build_args = []
+
+        if self.compiler.compiler_type != "msvc":
+            # Using Ninja-build since it a) is available as a wheel and b)
+            # multithreads automatically. MSVC would require all variables be
+            # exported for Ninja to pick it up, which is a little tricky to do.
+            # Users can override the generator with CMAKE_GENERATOR in CMake
+            # 3.15+.
+            pass
+            # if not cmake_generator:
+                # cmake_args += ["-GNinja"]
+        else:
+            # Single config generators are handled "normally"
+            single_config = any(x in cmake_generator for x in {"NMake", "Ninja"})
+
+            # CMake allows an arch-in-generator style for backward compatibility
+            contains_arch = any(x in cmake_generator for x in {"ARM", "Win64"})
+
+            # Specify the arch if using MSVC generator, but only if it doesn't
+            # contain a backward-compatibility arch spec already in the
+            # generator name.
+            if not single_config and not contains_arch:
+                cmake_args += ["-A", PLAT_TO_CMAKE[self.plat_name]]
+
+            # Multi-config generators have a different way to specify configs
+            if not single_config:
+                cmake_args += [
+                    "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}".format(cfg.upper(), extdir)
+                ]
+                build_args += ["--config", cfg]
+
+        # Set CMAKE_BUILD_PARALLEL_LEVEL to control the parallel build level
+        # across all generators.
+        if "CMAKE_BUILD_PARALLEL_LEVEL" not in os.environ:
+            # self.parallel is a Python 3 only way to set parallel jobs by hand
+            # using -j in the build_ext call, not supported by pip or PyPA-build.
+            if hasattr(self, "parallel") and self.parallel:
+                # CMake 3.12+ only.
+                build_args += ["-j{}".format(self.parallel)]
+
+        if not os.path.exists(build_temp):
+            os.makedirs(build_temp)
+        if Plat == "darwin":
+            cmake_args += [
+                "-DVulkan_LIBRARY={}".format(os.path.abspath("VulkanSDK/macos")),
+                "-DVulkan_INCLUDE_DIR={}".format(os.path.abspath("VulkanSDK/macos/include")),
+            ]
+        elif Plat in ["win32", "win64"]:
+            cmake_args += [
+                "-DVulkan_LIBRARY={}".format(os.path.abspath("VulkanSDK/windows")),
+                "-DVulkan_INCLUDE_DIR={}".format(os.path.abspath("VulkanSDK/Include")),
+            ]
+        else:
+            cmake_args += [
+                "-DVulkan_LIBRARY={}".format(os.path.abspath("VulkanSDK/linux/")),
+                "-DVulkan_INCLUDE_DIR={}".format(os.path.abspath("VulkanSDK/Include")),
+            ]
+        subprocess.check_call(
+            ["cmake", os.path.abspath("src/ncnn")] + cmake_args, cwd=build_temp
+        )
+        subprocess.check_call(
+            ["cmake", "--build", "."] + build_args, cwd=build_temp
+        )
+        self.force = True
+        return super(self.__class__, self).build_extension(ext)
+
 setuptools.setup(
     name="waifu2x-vulkan",
     version=Version,
     author="tonquer",
+    license="MIT",
     author_email="tonquer@outlook.com",
     description="A waifu2x tool, use vulkan.",
     long_description=long_description,
@@ -124,7 +234,8 @@ setuptools.setup(
         'Programming Language :: Python :: 3.10',
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     ],
-    python_requires = ">=3.6",
+    python_requires = ">=3.5",
     include_package_data=True,
-    ext_modules=[example_module]
+    cmdclass={"build_ext": CMakeBuild},
+    ext_modules=models,
 )

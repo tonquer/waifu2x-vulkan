@@ -1,5 +1,4 @@
 build/
 dist/
-waifu2x_vulkan/
 waifu2x_vulkan.egg-info/
 .vs/

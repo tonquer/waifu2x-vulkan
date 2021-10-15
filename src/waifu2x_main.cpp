@@ -180,7 +180,7 @@ void* waifu2x_proc(void* args)
             int success = 0;
             if (!v.file.compare("bmp") || !v.file.compare("BMP"))
             {
-                auto* odata = (unsigned char*)malloc(v.toW * v.toH * v.outimage.elempack);
+                unsigned char* odata = (unsigned char*)malloc(v.toW * v.toH * v.outimage.elempack);
                 stbir_resize((unsigned char*)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
                     STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
                     STBIR_FILTER_BOX, STBIR_FILTER_BOX,
@@ -221,7 +221,7 @@ void* waifu2x_proc(void* args)
                     success = wic_encode_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
                 #else*/
                 {
-                    auto *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
+                    unsigned char *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
                     stbir_resize((unsigned char *)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
                                 STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
                                 STBIR_FILTER_BOX, STBIR_FILTER_BOX,
@@ -239,7 +239,7 @@ void* waifu2x_proc(void* args)
                 //    success = wic_encode_jpeg_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
                 //#else
                 {
-                    auto *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
+                    unsigned char *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
                     stbir_resize((unsigned char *)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
                                 STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
                                 STBIR_FILTER_BOX, STBIR_FILTER_BOX,
@@ -294,7 +294,7 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
         if (noise2 == -1)
         {
             sprintf(parampath, "%s/models/%s/scale2.0x_model.param", ModelPath, name);
-            sprintf(modelpath, "%s/models/%s/scale2.0x_model.bin", name);
+            sprintf(modelpath, "%s/models/%s/scale2.0x_model.bin", ModelPath, name);
         }
         else
         {
