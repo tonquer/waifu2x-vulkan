@@ -90,4 +90,4 @@ cd $oldPath
 mkdir -p $PACKAGENAME
 cp README.md LICENSE $PACKAGENAME
 cp build/waifu2x_vulkan.so $PACKAGENAME
-cp -r models test $PACKAGENAME
+cp -r waifu2x_vulkan/models test $PACKAGENAME
