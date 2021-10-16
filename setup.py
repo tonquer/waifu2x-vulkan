@@ -41,7 +41,7 @@ assert sts==0
 ```
 
 """
-Version = "1.0.3"
+Version = "1.0.5"
 
 Plat = sys.platform
 
@@ -232,7 +232,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
-        "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+        "License :: OSI Approved :: MIT License",
     ],
     python_requires = ">=3.5",
     include_package_data=True,
