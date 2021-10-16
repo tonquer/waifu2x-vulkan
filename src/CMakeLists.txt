@@ -1,6 +1,3 @@
-cmake_policy(SET CMP0091 NEW)
-set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
-
 project(waifu2x-vulkan)
 
 cmake_minimum_required(VERSION 3.9)
@@ -18,7 +15,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 message("include " ${PYTHON_INCLUDE_DIRS})
-message("include " ${PYTHON_LIBRARIES})
 
 if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
