@@ -1,5 +1,6 @@
-os.chdir(__file__)
 import os, sys
+current_path = os.path.abspath(__file__)
+os.chdir(os.path.dirname(current_path))
 import waifu2x_vulkan as waifu2x
 import time
 
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     sts = waifu2x.init()
 
     isCpuModel = False
-    if sts <= 0:
+    if sts < 0:
         # cpu model
         isCpuModel = True
     print("init, code:{}".format(str(sts)))    
