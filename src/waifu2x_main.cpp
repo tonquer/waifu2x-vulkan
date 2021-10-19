@@ -120,8 +120,8 @@ void* waifu2x_proc(void* args)
         else
             name = "cpu";
 
-        waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, tta:%d\n",
-            v.callBack, name, v.file.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, waifu2x->tta_mode);
+        waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, tta:%d, tileSize:%d\n",
+            v.callBack, name, v.file.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, waifu2x->tta_mode, v.tileSize);
 
         if (waifu2x && pixeldata)
         {
@@ -157,7 +157,7 @@ void* waifu2x_proc(void* args)
                 {
                     waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
                         v.callBack, i + 1, v.inimage.h, v.outimage.h, v.inimage.w, v.outimage.w);
-                    waifu2x->process(v.inimage, v.outimage);
+                    waifu2x->process(v.inimage, v.outimage, v.tileSize);
                     v.inimage.release();
                 }
                 else
@@ -165,7 +165,7 @@ void* waifu2x_proc(void* args)
                     ncnn::Mat tmpimage(v.inimage.w * 2, v.inimage.h * 2, (size_t)v.inimage.elemsize, (int)v.inimage.elemsize);
                     waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
                         v.callBack, i + 1, v.inimage.h, tmpimage.h, v.inimage.w, tmpimage.w);
-                    waifu2x->process(v.inimage, tmpimage);
+                    waifu2x->process(v.inimage, tmpimage, v.tileSize);
                     v.inimage.release();
                     v.inimage = tmpimage;
                 }
@@ -368,7 +368,7 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
             tilesize = 32;
     }
     struct stat buffer;
-
+    if (GpuId == -1) tilesize = 800;
 
     if (stat(parampath, &buffer) != 0)
     {
@@ -394,11 +394,11 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
     waifu->load(paramfullpath, modelfullpath);
     waifu->noise = noise2;
     waifu->scale = scale2;
-    if (GpuId == -1)
-    {
+    //if (GpuId == -1)
+    //{
         // cpu only
-        tilesize = 4000;
-    }
+        //tilesize = 4000;
+    //}
 
     waifu->tilesize = tilesize;
     waifu->prepadding = prepadding;
@@ -432,17 +432,14 @@ int waifu2x_init_path(const char* modelPath2)
 
 int waifu2x_init_set(int gpuId2, int threadNum)
 {
-    if (gpuId2 < -1 || gpuId2 >  2) { 
-        waifu2x_printf(stderr, "[waifu2x] gpuId error, gpuId2:%d, threadNum:%d \n", gpuId2, threadNum);
-        return -1; 
-    };
     if (threadNum <= 0 || threadNum > 32) { return -1; };
 
     int jobs_proc = threadNum;
 
-    if (gpuId2 == 0) gpuId2 = ncnn::get_default_gpu_index();
+    //if (gpuId2 == 0) gpuId2 = ncnn::get_default_gpu_index();
     int cpu_count = std::max(1, ncnn::get_cpu_count());
     int gpu_count = ncnn::get_gpu_count();
+    if (gpu_count == 0) gpuId2 = -1;
     if (gpuId2 < -1 || gpuId2 >= gpu_count)
     {
         waifu2x_printf(stderr, "[waifu2x] invalid gpu device\n");
@@ -543,7 +540,7 @@ int waifu2x_check_init_model(int initModel)
 }
 
 
-int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale)
+int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale, int tileSize)
 {
     Task v;
     TaskId ++;
@@ -555,6 +552,7 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
     v.toH = toH;
     v.toW = toW;
     v.scale = scale;
+    v.tileSize = tileSize;
     if ((toH <= 0 || toW <= 0) && scale <= 0)
         return -1;
     int sts = waifu2x_check_init_model(modelIndex);
@@ -578,6 +576,9 @@ int waifu2x_stop()
             Toproc.put(end);
         }
 
+        Task end2;
+        end2.id = -233;
+        Tosave.put(end2);
         for (int i = 0; i < TotalJobsProc; i++)
         {
             ProcThreads[i]->join();

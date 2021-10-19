@@ -22,9 +22,9 @@ public:
     int load(const std::string& parampath, const std::string& modelpath);
 #endif
 
-    int process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const;
+    int process(const ncnn::Mat& inimage, ncnn::Mat& outimage, int tileSize=0) const;
 
-    int process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage) const;
+    int process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage, int tileSize=0) const;
 
 public:
     // waifu2x parameters

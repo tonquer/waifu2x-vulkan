@@ -143,12 +143,12 @@ int Waifu2x::load(const std::string& parampath, const std::string& modelpath)
     return 0;
 }
 
-int Waifu2x::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
+int Waifu2x::process(const ncnn::Mat& inimage, ncnn::Mat& outimage,int tilesize2) const
 {
     if (!vkdev)
     {
         // cpu only
-        return process_cpu(inimage, outimage);
+        return process_cpu(inimage, outimage, tilesize2);
     }
 
     if (noise == -1 && scale == 1)
@@ -161,9 +161,12 @@ int Waifu2x::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
     const int w = inimage.w;
     const int h = inimage.h;
     const int channels = inimage.elempack;
-
-    const int TILE_SIZE_X = tilesize;
-    const int TILE_SIZE_Y = tilesize;
+    if (tilesize2 <= 0)
+    {
+        tilesize2 = tilesize;
+    }
+    const int TILE_SIZE_X = tilesize2;
+    const int TILE_SIZE_Y = tilesize2;
 
     ncnn::VkAllocator* blob_vkallocator = vkdev->acquire_blob_allocator();
     ncnn::VkAllocator* staging_vkallocator = vkdev->acquire_staging_allocator();
@@ -538,7 +541,7 @@ int Waifu2x::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
     return 0;
 }
 
-int Waifu2x::process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
+int Waifu2x::process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage, int tilesize2) const
 {
     if (noise == -1 && scale == 1)
     {
@@ -551,9 +554,13 @@ int Waifu2x::process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
     const int h = inimage.h;
     const int channels = inimage.elempack;
 
-    const int TILE_SIZE_X = tilesize;
-    const int TILE_SIZE_Y = tilesize;
+    if (tilesize2 <= 0)
+    {
+        tilesize2 = tilesize;
+    }
 
+    const int TILE_SIZE_X = tilesize2;
+    const int TILE_SIZE_Y = tilesize2;
     ncnn::Option opt = net.opt;
 
     // each tile 400x400

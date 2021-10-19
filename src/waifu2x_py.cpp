@@ -58,7 +58,7 @@ waifu2x_py_init(PyObject* self, PyObject* args)
         return PyLong_FromLong(0);
     }
     int sts = waifu2x_init();
-    if (!sts) IsInit = true;
+    IsInit = true;
     return PyLong_FromLong(sts);
 }
 
@@ -70,7 +70,7 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
     Py_ssize_t  gpuId = 0;
     Py_ssize_t  threadNum = 0;
     Py_ssize_t  noSetDefaultPath = 0;
-    char* kwarg_names[] = { "gpuId","threadNum", "noDefaultPath", NULL };
+    char* kwarg_names[] = { (char*)"gpuId",(char*)"threadNum", (char*)"noDefaultPath", NULL };
     int sts;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|i", kwarg_names, &gpuId, &threadNum, &noSetDefaultPath))
@@ -159,11 +159,11 @@ waifu2x_py_remove_wait(PyObject* self, PyObject* args, PyObject* kwargs)
         Py_RETURN_NONE;
     }
     PyObject* bufobj;
-    char* kwarg_names[] = { "backIds", NULL };
+    char * kwarg_names[] = { (char*)"backIds", NULL };
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwarg_names, &bufobj))
         Py_RETURN_NONE;
 
-    int list_len = PyObject_Size(bufobj);
+    Py_ssize_t list_len = PyObject_Size(bufobj);
     if (list_len <= 0)
     {
         Py_RETURN_NONE;
@@ -190,11 +190,11 @@ waifu2x_py_remove(PyObject* self, PyObject* args, PyObject* kwargs)
     }
     PyObject* bufobj;
 
-    char* kwarg_names[] = { "backIds", NULL };
+    char* kwarg_names[] = { (char*)"backIds", NULL };
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", kwarg_names, &bufobj))
         Py_RETURN_NONE;
 
-    int list_len = PyObject_Size(bufobj);
+    Py_ssize_t list_len = PyObject_Size(bufobj);
     if (list_len <= 0)
     {
         Py_RETURN_NONE;
@@ -228,10 +228,11 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
     const char* format = NULL;
     Py_ssize_t  width = 0;
     Py_ssize_t  high = 0;
+    Py_ssize_t  tileSize = 0;
     float scale = 0;
 
-    char* kwarg_names[] = { "data","modelIndex","backId", "format", "width", "high", "scale", NULL };
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#ii|siif", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high, &scale))
+    char* kwarg_names[] = { (char*)"data",(char*)"modelIndex",(char*)"backId", (char*)"format", (char*)"width", (char*)"high", (char*)"scale", (char *)"tileSize", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#ii|siifi", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high, &scale, &tileSize))
         return PyLong_FromLong(-2);
     //fprintf(stdout, "point:%p, size:%d, index:%d, back:%d, scale:%f \n", b, size, modelIndex, callBack, scale);
     if (!b)
@@ -243,7 +244,7 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
 
     data = (unsigned char*)malloc(size);
     memcpy(data, b, size);
-    sts = waifu2x_addData(data, size, callBack, modelIndex, format, width, high, scale);
+    sts = waifu2x_addData(data, size, callBack, modelIndex, format, width, high, scale, tileSize);
     return PyLong_FromLong(sts);
 }
 static PyObject*
@@ -277,8 +278,8 @@ waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
     Py_ssize_t block = 0;
     double tick = 0;
     int callBack;
-    char* kwarg_names[] = { "block", NULL };
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i", kwarg_names, &block))
+    char* kwarg_names[] = { (char*)"block", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwarg_names, &block))
         Py_RETURN_NONE;
     PyThreadState* save;
     save = PyEval_SaveThread();
@@ -301,9 +302,9 @@ waifu2x_py_stop(PyObject* self, PyObject* args)
         return PyLong_FromLong(0);
     }
 
-    int sts = waifu2x_stop();
     IsInit = false;
     IsInitSet = false;
+    int sts = waifu2x_stop();
     return PyLong_FromLong(sts);
 }
 

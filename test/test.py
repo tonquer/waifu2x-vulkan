@@ -1,13 +1,19 @@
+os.chdir(__file__)
 import os, sys
 import waifu2x_vulkan as waifu2x
 import time
 
 if __name__ == "__main__":
-    os.chdir(os.path.dirname(__file__))
 
     # 初始化ncnn
     # init ncnn
-    waifu2x.init()
+    sts = waifu2x.init()
+
+    isCpuModel = False
+    if sts <= 0:
+        # cpu model
+        isCpuModel = True
+    print("init, code:{}".format(str(sts)))    
 
     # 获得Gpu列表
     # get gpu list
@@ -15,7 +21,11 @@ if __name__ == "__main__":
 
     # 选择Gpu,设置线程数
     # select gpu, set thread num
-    waifu2x.initSet(0, 1)
+    if isCpuModel:
+        sts = waifu2x.initSet(-1, 1)
+    else:
+        sts = waifu2x.initSet(0, 1)
+    print("init set, code:{}".format(str(sts)))
 
     # 开启打印
     # open debug log
@@ -34,8 +44,10 @@ if __name__ == "__main__":
     backId = 2
 
     # 固定长宽
+    # CPU模式默认tileSize=800，如果内存小，请调低改值
     # start convert, by setting width and high
-    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, format="png", width=900, high=800) > 0:
+    # CPU Model default tileSize=800, if the memory is too small, Please turn down
+    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, format="png", width=900, high=800, tileSize=200) > 0:
         count += 1
     
     saveName = {
