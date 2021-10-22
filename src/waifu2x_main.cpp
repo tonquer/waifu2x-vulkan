@@ -49,16 +49,14 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     outSize = v.outSize;
 
     v.out = NULL;
-    clock_t encodeTick = v.encodeTick - v.startTick;
-    clock_t procTick = v.procTick - v.encodeTick;
-    clock_t decodeTick = v.saveTick - v.procTick;
-    clock_t allTick = v.saveTick - v.startTick;
+    double encodeTick = (v.encodeTick.time + v.encodeTick.millitm/1000.0) - (v.startTick.time + v.encodeTick.millitm / 1000.0);
+    double procTick = (v.procTick.time + v.procTick.millitm / 1000.0) - (v.encodeTick.time + v.encodeTick.millitm / 1000.0);
+    double decodeTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.procTick.time + v.procTick.millitm/1000.0);
+    double allTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 10000.0);
 
-    waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, encode:%f, proc:%f, decode:%f, \n",
-        v.callBack, ((double)encodeTick) / CLOCKS_PER_SEC,
-        ((double)procTick) / CLOCKS_PER_SEC,
-        ((double)decodeTick) / CLOCKS_PER_SEC);
-    tick = ((double)allTick) / CLOCKS_PER_SEC;
+    waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, encode:%.2fs, proc:%.2fs, decode:%.2fs, \n",
+        v.callBack, encodeTick, procTick, decodeTick);
+    tick = allTick;
     return v.id;
 }
 
@@ -80,8 +78,7 @@ void* waifu2x_proc(void* args)
         {
             waifu2x = Waifu2xList[v.modelIndex];
         }
-        
-        v.startTick = clock();
+        ftime(&v.startTick);
         unsigned char* pixeldata = 0;
         int w;
         int h;
@@ -136,7 +133,7 @@ void* waifu2x_proc(void* args)
             //{
             //    v.file = "png";
             //}
-            v.encodeTick = clock();
+            ftime(&v.encodeTick);
             //waifu2x->process(v.inimage, v.outimage);
             int scale_run_count = 1;
             if (v.toH > 0 && v.toW > 0 && h > 0 && w > 0)
@@ -150,7 +147,11 @@ void* waifu2x_proc(void* args)
             int toW = w * pow(waifu2x->scale, scale_run_count);
             int toH = h * pow(waifu2x->scale, scale_run_count);
             v.outimage = ncnn::Mat(toW, toH, (size_t)c, c);
-
+            
+            if (waifu2x->scale <= 1)
+            {
+                scale_run_count = 1;
+            }
             for (int i = 0; i < scale_run_count; i++)
             {
                 if (i == scale_run_count - 1)
@@ -175,8 +176,7 @@ void* waifu2x_proc(void* args)
 //#else
             if (pixeldata) stbi_image_free(pixeldata);
 //#endif
-            v.procTick = clock();
-
+            ftime(&v.procTick);
             int success = 0;
             if (!v.file.compare("bmp") || !v.file.compare("BMP"))
             {
@@ -189,21 +189,6 @@ void* waifu2x_proc(void* args)
                 WriteData data(v.toH, v.toW, v.outimage.elempack);
                 stbi_write_bmp_to_func((stbi_write_func*)write_jpg_to_mem, (void*)&data, v.toW, v.toH, v.outimage.elempack, odata);
                 stbi_image_free(odata);
-                if (data.writeSize > 0)
-                {
-                    success = true;
-                    v.out = malloc(data.writeSize);
-                    v.outSize = data.writeSize;
-                    memcpy(v.out, data.data, v.outSize);
-                }
-                else {
-                    success = false;
-                }
-            }
-            else if (!v.file.compare("gif") || !v.file.compare("GIF"))
-            {
-                WriteData data(v.toH, v.toW, v.outimage.elempack);
-                stbi_write_bmp_to_func((stbi_write_func*)write_jpg_to_mem, (void*)&data, v.toW, v.toH, v.outimage.elempack, (unsigned char*)v.outimage.data);
                 if (data.writeSize > 0)
                 {
                     success = true;
@@ -270,7 +255,7 @@ void* waifu2x_proc(void* args)
                 const char* error = stbi_failure_reason();
                 waifu2x_printf(stderr, "[waifu2x] encode image %d failed, %s\n", v.id, error);
             }
-            v.saveTick = clock();
+            ftime(&v.saveTick);
         }
         else
         {
@@ -368,7 +353,7 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
             tilesize = 32;
     }
     struct stat buffer;
-    if (GpuId == -1) tilesize = 800;
+    if (GpuId == -1) tilesize = 400;
 
     if (stat(parampath, &buffer) != 0)
     {
@@ -432,7 +417,7 @@ int waifu2x_init_path(const char* modelPath2)
 
 int waifu2x_init_set(int gpuId2, int threadNum)
 {
-    if (threadNum <= 0 || threadNum > 32) { return -1; };
+    if (threadNum <= 0 || threadNum > 128) { return -1; };
 
     int jobs_proc = threadNum;
 
@@ -449,7 +434,7 @@ int waifu2x_init_set(int gpuId2, int threadNum)
     if (gpuId2 == -1)
     {
         jobs_proc = std::min(jobs_proc, cpu_count);
-        TotalJobsProc += 1;
+        TotalJobsProc += jobs_proc;
     }
     else
     {
@@ -481,16 +466,9 @@ int waifu2x_init_set(int gpuId2, int threadNum)
     ProcThreads.resize(TotalJobsProc);
     {
         int total_jobs_proc_id = 0;
-        if (gpuId2 == -1)
+        for (int j = 0; j < jobs_proc; j++)
         {
             ProcThreads[total_jobs_proc_id++] = new ncnn::Thread(waifu2x_proc);
-        }
-        else
-        {
-            for (int j = 0; j < jobs_proc; j++)
-            {
-                ProcThreads[total_jobs_proc_id++] = new ncnn::Thread(waifu2x_proc);
-            }
         }
     }
     GpuId = gpuId2;

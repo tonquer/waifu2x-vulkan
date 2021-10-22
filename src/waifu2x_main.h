@@ -16,6 +16,7 @@
 #endif
 #include "waifu2x.h"
 #include <time.h>
+#include <sys/timeb.h>
 #include "filesystem_utils.h"
 
 enum Waifu2xError {
@@ -43,10 +44,10 @@ public:
     float scale = 2;
     int tileSize = 0;
 
-    clock_t startTick;
-    clock_t encodeTick;
-    clock_t procTick;
-    clock_t saveTick;
+    struct timeb startTick;
+    struct timeb encodeTick;
+    struct timeb procTick;
+    struct timeb saveTick;
     void* out = 0;
     int outSize = 0;
 };

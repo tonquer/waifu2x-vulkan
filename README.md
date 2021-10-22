@@ -5,7 +5,7 @@
 - 
 # Install
 ```shell
-pip install waifu2x-vulkan
+pip install waifu2x-vulkan -v
 ```
 
 # Use
