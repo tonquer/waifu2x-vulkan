@@ -108,7 +108,7 @@ else:
     libraries=["gomp"],
     extra_compile_args=["-fopenmp"],
     extra_link_args=["-fopenmp"],
-    
+
     )
     models = [example_module]
 
@@ -236,6 +236,11 @@ setuptools.setup(
     ],
     python_requires = ">=3.5",
     include_package_data=True,
+    entry_points={
+        "pyinstaller40": [
+            "hook-dirs = waifu2x_vulkan:get_hook_dirs"
+        ]
+    },
     cmdclass={"build_ext": CMakeBuild},
     ext_modules=models,
 )

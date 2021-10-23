@@ -2,3 +2,7 @@ build/
 dist/
 waifu2x_vulkan.egg-info/
 .vs/
+.idea
+venv
+test/1.jpg
+test/2.png

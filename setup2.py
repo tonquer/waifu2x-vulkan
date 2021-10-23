@@ -70,6 +70,11 @@ setuptools.setup(
         'Programming Language :: Python :: 3.10',
         "License :: OSI Approved :: MIT License",
     ],
+    entry_points={
+        "pyinstaller40": [
+            "hook-dirs = waifu2x_vulkan:get_hook_dirs"
+        ]
+    },
     python_requires = ">=3.5",
     include_package_data=True,
 )
