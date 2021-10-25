@@ -83,5 +83,5 @@ static struct PyModuleDef spammodule = {
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "1.0.6";
+static const char* Version = "1.0.7";
 #endif 
