@@ -284,11 +284,11 @@ waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
     PyThreadState* save;
     save = PyEval_SaveThread();
     int sts = waifu2x_getData(out, outSize, tick, callBack, block);
+    PyEval_RestoreThread(save);
     if (sts <= 0)
     {
         Py_RETURN_NONE;
     }
-    PyEval_RestoreThread(save);
     PyObject* data = Py_BuildValue("y#iid", (char*)out, outSize, sts, callBack, tick);
     if (out) free(out);
     return data;

@@ -19,7 +19,7 @@ pip install waifu2x-vulkan
 
 # Use
 ```shell
-import waifu2x_vulkan
+from waifu2x_vulkan import waifu2x_vulkan
 
 # init
 sts = waifu2x_vulkan.init()
