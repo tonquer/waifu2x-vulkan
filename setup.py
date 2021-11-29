@@ -24,6 +24,11 @@ from waifu2x_vulkan import waifu2x_vulkan
 # init
 sts = waifu2x_vulkan.init()
 print("init, code:{}".format(str(sts)))
+isCpuModel = False
+if sts < 0:
+    # cpu model
+    isCpuModel = True
+    
 gpuList = waifu2x_vulkan.getGpuInfo()
 print(gpuList)
 sts = waifu2x_vulkan.initSet(gpuId=0, threadNum=2)
@@ -41,7 +46,7 @@ print("init set, code:{}".format(str(sts)))
 ```
 
 """
-Version = "1.0.8"
+Version = "1.0.9"
 
 Plat = sys.platform
 

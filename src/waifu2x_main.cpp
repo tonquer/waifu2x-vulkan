@@ -25,7 +25,8 @@
 TaskQueue Toproc;
 TaskQueue Tosave;
 bool IsDebug = false;
-char ModelPath[1024] = {0};
+
+Waifu2xChar ModelPath[1024] = {0};
 
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout = 10)
 {
@@ -269,10 +270,39 @@ void* waifu2x_proc(void* args)
     return 0;
 }
 
-int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int num_threads, int index)
+int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mode, int num_threads, int index)
 {
-    char parampath[256];
-    char modelpath[256];
+
+    Waifu2xChar parampath[1024];
+    Waifu2xChar modelpath[1024];
+#if _WIN32
+    // Waifu2xList.push_back(NULL);
+    if (scale2 == 2) {
+
+        if (noise2 == -1)
+        {
+            swprintf(parampath, L"%s/models/%s/scale2.0x_model.param", ModelPath, name);
+            swprintf(modelpath, L"%s/models/%s/scale2.0x_model.bin", ModelPath, name);
+        }
+        else
+        {
+            swprintf(parampath, L"%s/models/%s/noise%d_scale2.0x_model.param", ModelPath, name, noise2);
+            swprintf(modelpath, L"%s/models/%s/noise%d_scale2.0x_model.bin", ModelPath, name, noise2);
+        }
+    }
+    else if (scale2 == 1) {
+        if (noise2 == -1)
+        {
+            swprintf(parampath, L"%s/models/%s/noise0_model.param", ModelPath, name);
+            swprintf(modelpath, L"%s/models/%s/noise0_model.bin", ModelPath, name);
+        }
+        else
+        {
+            swprintf(parampath, L"%s/models/%s/noise%d_model.param", ModelPath, name, noise2);
+            swprintf(modelpath, L"%s/models/%s/noise%d_model.bin", ModelPath, name, noise2);
+        }
+    }
+#else
     // Waifu2xList.push_back(NULL);
     if (scale2 == 2) {
 
@@ -299,13 +329,18 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
             sprintf(modelpath, "%s/models/%s/noise%d_model.bin", ModelPath, name, noise2);
         }
     }
+#endif
+
     int prepadding = 18;
     int tilesize = 0;
     uint32_t heap_budget;
     if (GpuId == -1) heap_budget = 4000;
     else heap_budget = ncnn::get_gpu_device(GpuId)->get_heap_budget();
-
+#if WIN32
+    if (!wcscmp(name, L"models-cunet"))
+#else
     if (!strcmp(name, "models-cunet"))
+#endif
     {
         if (noise2 == -1)
         {
@@ -328,7 +363,12 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
         else
             tilesize = 32;
     }
+
+#if WIN32
+    else if (!wcscmp(name, L"models-upconv_7_anime_style_art_rgb"))
+#else
     else if (!strcmp(name, "models-upconv_7_anime_style_art_rgb"))
+#endif
     {
         prepadding = 7;
         if (heap_budget > 1900)
@@ -340,7 +380,11 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
         else
             tilesize = 32;
     }
+#if WIN32
+    else if (!wcscmp(name, L"models-upconv_7_photo"))
+#else
     else if (!strcmp(name, "models-upconv_7_photo"))
+#endif
     {
         prepadding = 7;
         if (heap_budget > 1900)
@@ -352,9 +396,24 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
         else
             tilesize = 32;
     }
-    struct stat buffer;
     if (GpuId == -1) tilesize = 400;
 
+#if _WIN32
+
+    struct _stat buffer;
+    if (_wstat(parampath, &buffer) != 0)
+    {
+        waifu2x_printf(stderr, L"[waifu2x] not found path %s\n", parampath);
+        return Waifu2xError::NotModel;
+    }
+    if (_wstat(modelpath, &buffer) != 0)
+    {
+        waifu2x_printf(stderr, L"[waifu2x] not found path %s\n", modelpath);
+        return Waifu2xError::NotModel;
+    }
+#elif
+
+    struct stat buffer;
     if (stat(parampath, &buffer) != 0)
     {
         waifu2x_printf(stderr, "[waifu2x] not found path %s\n", parampath);
@@ -365,17 +424,25 @@ int waifu2x_addModel(const char* name, int scale2, int noise2, int tta_mode, int
         waifu2x_printf(stderr, "[waifu2x] not found path %s\n", modelpath);
         return Waifu2xError::NotModel;
     }
-#if _WIN32
-    _bstr_t t1 = parampath;
-    std::wstring paramfullpath((wchar_t*)t1);
+#endif
 
-    _bstr_t t2 = modelpath;
-    std::wstring modelfullpath((wchar_t*)t2);
+#if _WIN32
+    //_bstr_t t1 = parampath;
+    //std::wstring paramfullpath((wchar_t*)t1);
+
+    //_bstr_t t2 = modelpath;
+    //std::wstring modelfullpath((wchar_t*)t2);
+    std::wstring paramfullpath(parampath);
+    std::wstring modelfullpath(modelpath);
+
+    _bstr_t b(name);
+    const char* name2 = b;
 #else
     std::string paramfullpath(parampath);
     std::string modelfullpath(modelpath);
+    const char* name2 = name;
 #endif
-    Waifu2x* waifu = new Waifu2x(GpuId, tta_mode, num_threads, name);
+    Waifu2x* waifu = new Waifu2x(GpuId, tta_mode, num_threads, name2);
     waifu->load(paramfullpath, modelfullpath);
     waifu->noise = noise2;
     waifu->scale = scale2;
@@ -400,18 +467,30 @@ int waifu2x_init()
     return ncnn::create_gpu_instance();
 }
 
-char * waifu2x_get_path()
+int waifu2x_get_path_size()
 {
-    return ModelPath;
+#if _WIN32
+    return wcslen(ModelPath);
+#else
+    return strlen(ModelPath);
+#endif
 }
 
-int waifu2x_init_path(const char* modelPath2)
+int waifu2x_init_path(const Waifu2xChar* modelPath2)
 {
-    if (modelPath2) 
-    { 
+#if _WIN32
+    if (modelPath2)
+    {
+        memset(ModelPath, 0, 1024);
+        wcscpy(ModelPath, modelPath2);
+    };
+#else
+    if (modelPath2)
+    {
         memset(ModelPath, 0, 1024);
         strcpy(ModelPath, modelPath2);
     };
+#endif
     return 0;
 }
 
@@ -487,10 +566,18 @@ int waifu2x_check_init_model(int initModel)
         return 1;
     }
     int index = 0;
+#if _WIN32
+    std::wstring models[3] = { L"models-cunet", L"models-upconv_7_anime_style_art_rgb", L"models-upconv_7_photo" };
+#else
     std::string models[3] = { "models-cunet", "models-upconv_7_anime_style_art_rgb", "models-upconv_7_photo" };
+#endif
     for (int i = 0; i < 3; i++)
     {
+#if _WIN32
+        std::wstring name = models[i];
+#else
         std::string name = models[i];
+#endif
         for (int j = -1; j <= 3; j++)
         {
             if (index == initModel) {
@@ -506,11 +593,19 @@ int waifu2x_check_init_model(int initModel)
     for (int j = -1; j <= 3; j++)
     {
         if (index == initModel) {
+#if _WIN32
+            return waifu2x_addModel(L"models-cunet", 1, j, false, NumThreads, index);
+#else
             return waifu2x_addModel("models-cunet", 1, j, false, NumThreads, index);
+#endif
         }
         index ++ ;
         if (index == initModel) {
+#if _WIN32
+            return waifu2x_addModel(L"models-cunet", 1, j, true, NumThreads, index);
+#else
             return waifu2x_addModel("models-cunet", 1, j, true, NumThreads, index);
+#endif
         }
         index++;
     }
@@ -606,4 +701,18 @@ int waifu2x_printf(void* p, const char* fmt, ...)
         return result;
     }
         return 0;
+}
+
+int waifu2x_printf(void* p, const wchar_t* fmt, ...)
+{
+    if (IsDebug) {
+        FILE* f = (FILE*)p;
+        va_list vargs;
+        int result;
+        va_start(vargs, fmt);
+        result = vfwprintf(f, fmt, vargs);
+        va_end(vargs);
+        return result;
+    }
+    return 0;
 }

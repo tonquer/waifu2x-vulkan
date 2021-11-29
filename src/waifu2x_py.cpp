@@ -76,7 +76,7 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|i", kwarg_names, &gpuId, &threadNum, &noSetDefaultPath))
         return PyLong_FromLong(-1);
     
-    if (!noSetDefaultPath && strlen(waifu2x_get_path()) <= 0)
+    if (!noSetDefaultPath && waifu2x_get_path_size() <= 0)
     {
         PyObject* pyModule = PyImport_ImportModule("waifu2x_vulkan");
         PyObject* v = PyObject_GetAttrString(pyModule, "__file__");
@@ -88,8 +88,14 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
         PyTuple_SET_ITEM(pyargs, 0, v);
         PyObject* rel = PyObject_CallObject(func, pyargs);
 
+
+#if _WIN32
+        const wchar_t* path = NULL;
+        PyArg_Parse(rel, "u#", &path);
+#else 
         const char* path = NULL;
-        PyArg_Parse(rel, "s", &path);
+        PyArg_Parse(rel, "s#", &path);
+#endif
         sts = waifu2x_init_path(path);
     }
     sts = waifu2x_init_set(gpuId, threadNum);
@@ -123,10 +129,16 @@ waifu2x_py_set_debug(PyObject* self, PyObject* args)
 static PyObject*
 waifu2x_py_set_path(PyObject* self, PyObject* args)
 {
-    const char* modelPath = 0;
     int sts;
+#if _WIN32
+    const wchar_t* modelPath = 0;
+    if (!PyArg_ParseTuple(args, "|u", &modelPath))
+        Py_RETURN_NONE;
+#else
+    const char* modelPath = 0;
     if (!PyArg_ParseTuple(args, "|s", &modelPath))
         Py_RETURN_NONE;
+#endif
 
     if (modelPath)
     {
@@ -143,9 +155,13 @@ waifu2x_py_set_path(PyObject* self, PyObject* args)
         PyObject* pyargs = PyTuple_New(1);
         PyTuple_SET_ITEM(pyargs, 0, v);
         PyObject* rel = PyObject_CallObject(func, pyargs);
-
+#if _WIN32
+        const wchar_t* path = NULL;
+        PyArg_Parse(rel, "u#", &path);
+#else
         const char* path = NULL;
-        PyArg_Parse(rel, "s", &path);
+        PyArg_Parse(rel, "s#", &path);
+#endif
         sts = waifu2x_init_path(path);
     }
     return PyLong_FromLong(sts);

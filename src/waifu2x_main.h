@@ -19,6 +19,12 @@
 #include <sys/timeb.h>
 #include "filesystem_utils.h"
 
+#if _WIN32
+typedef wchar_t Waifu2xChar;
+#else
+typedef char Waifu2xChar;
+#endif
+
 enum Waifu2xError {
     NotModel = -20,
 };
@@ -152,12 +158,13 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout);
 int waifu2x_init();
 int waifu2x_init_set(int gpuId2, int threadNum);
-int waifu2x_init_path(const char*);
-char* waifu2x_get_path();
+int waifu2x_init_path(const Waifu2xChar*);
+int waifu2x_get_path_size();
 int waifu2x_stop();
 int waifu2x_clear();
 int waifu2x_set_debug(bool);
 int waifu2x_printf(void* p, const char* fmt, ...);
+int waifu2x_printf(void* p, const wchar_t* fmt, ...);
 int waifu2x_remove_wait(std::set<int>&);
 int waifu2x_remove(std::set<int>&);
 

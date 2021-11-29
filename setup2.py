@@ -24,6 +24,11 @@ from waifu2x_vulkan import waifu2x_vulkan
 # init
 sts = waifu2x_vulkan.init()
 print("init, code:{}".format(str(sts)))
+isCpuModel = False
+if sts < 0:
+    # cpu model
+    isCpuModel = True
+
 gpuList = waifu2x_vulkan.getGpuInfo()
 print(gpuList)
 sts = waifu2x_vulkan.initSet(gpuId=0, threadNum=2)
@@ -41,7 +46,7 @@ print("init set, code:{}".format(str(sts)))
 ```
 
 """
-Version = "1.0.8"
+Version = "1.0.9"
 
 Plat = sys.platform
 
@@ -62,7 +67,6 @@ setuptools.setup(
     classifiers=[
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
@@ -75,6 +79,6 @@ setuptools.setup(
             "hook-dirs = waifu2x_vulkan:get_hook_dirs"
         ]
     },
-    python_requires = ">=3.5",
+    python_requires = ">=3.6",
     include_package_data=True,
 )
