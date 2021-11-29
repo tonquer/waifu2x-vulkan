@@ -401,12 +401,12 @@ int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mo
 #if _WIN32
 
     struct _stat buffer;
-    if (_wstat(parampath, &buffer) != 0)
+    if (_wstat((wchar_t *)parampath, &buffer) != 0)
     {
         waifu2x_printf(stderr, L"[waifu2x] not found path %s\n", parampath);
         return Waifu2xError::NotModel;
     }
-    if (_wstat(modelpath, &buffer) != 0)
+    if (_wstat((wchar_t *)modelpath, &buffer) != 0)
     {
         waifu2x_printf(stderr, L"[waifu2x] not found path %s\n", modelpath);
         return Waifu2xError::NotModel;
@@ -414,12 +414,12 @@ int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mo
 #else
 
     struct stat buffer;
-    if (stat(parampath, &buffer) != 0)
+    if (stat((char *)parampath, &buffer) != 0)
     {
         waifu2x_printf(stderr, "[waifu2x] not found path %s\n", parampath);
         return Waifu2xError::NotModel;
     }
-    if (stat(modelpath, &buffer) != 0)
+    if (stat((char *)modelpath, &buffer) != 0)
     {
         waifu2x_printf(stderr, "[waifu2x] not found path %s\n", modelpath);
         return Waifu2xError::NotModel;

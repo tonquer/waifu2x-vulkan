@@ -57,7 +57,7 @@ setuptools.setup(
     version=Version,
     author="tonquer",
     license="MIT",
-    author_email="tonquer@outlook.com",
+    author_email="tonquer@qq.com",
     description="A waifu2x tool, use vulkan.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -82,3 +82,4 @@ setuptools.setup(
     python_requires = ">=3.6",
     include_package_data=True,
 )
+# python setup2.py bdist_wheel --plat-name=win-amd64 --python-tag=cp36.cp37.cp38.cp39.cp310

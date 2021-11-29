@@ -91,10 +91,10 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
 
 #if _WIN32
         const wchar_t* path = NULL;
-        PyArg_Parse(rel, "u#", &path);
+        PyArg_Parse(rel, "u", &path);
 #else 
         const char* path = NULL;
-        PyArg_Parse(rel, "s#", &path);
+        PyArg_Parse(rel, "s", &path);
 #endif
         sts = waifu2x_init_path(path);
     }

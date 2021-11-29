@@ -222,7 +222,7 @@ setuptools.setup(
     version=Version,
     author="tonquer",
     license="MIT",
-    author_email="tonquer@outlook.com",
+    author_email="tonquer@qq.com",
     description="A waifu2x tool, use vulkan.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -239,7 +239,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.10',
         "License :: OSI Approved :: MIT License",
     ],
-    python_requires = ">=3.5",
+    python_requires = ">=3.6",
     include_package_data=True,
     entry_points={
         "pyinstaller40": [
@@ -249,3 +249,5 @@ setuptools.setup(
     cmdclass={"build_ext": CMakeBuild},
     ext_modules=models,
 )
+
+# python setup.py sdist
