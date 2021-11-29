@@ -17,7 +17,6 @@
 #include "waifu2x.h"
 #include <time.h>
 #include <sys/timeb.h>
-#include "filesystem_utils.h"
 
 #if _WIN32
 typedef wchar_t Waifu2xChar;
@@ -35,8 +34,6 @@ public:
     int id = 0;
     int webp;
 
-    path_t inpath;
-    path_t outpath;
     void* fileDate;
     unsigned long fileSize;
     std::string file = "jpg";

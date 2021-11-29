@@ -411,7 +411,7 @@ int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mo
         waifu2x_printf(stderr, L"[waifu2x] not found path %s\n", modelpath);
         return Waifu2xError::NotModel;
     }
-#elif
+#else
 
     struct stat buffer;
     if (stat(parampath, &buffer) != 0)
