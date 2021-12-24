@@ -76,7 +76,7 @@ if __name__ == "__main__":
         newData, status, backId, tick = info
         f = open(saveName.get(backId), "wb+")
         f.write(newData)
-        f.close
+        f.close()
     
     # free ncnn, close thread
     waifu2x.stop()
