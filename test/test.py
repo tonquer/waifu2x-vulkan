@@ -9,23 +9,31 @@ if __name__ == "__main__":
     # 初始化ncnn
     # init ncnn
     sts = waifu2x.init()
-
+    
     isCpuModel = False
     if sts < 0:
         # cpu model
         isCpuModel = True
-    print("init, code:{}".format(str(sts)))    
-
+        
+    
     # 获得Gpu列表
     # get gpu list
-    print(waifu2x.getGpuInfo())
+    infos = waifu2x.getGpuInfo()
+    
+    # if llvm gpu, use cpu model
+    if infos and len(infos) == 1 and "LLVM" in infos[0]:
+        isCpuModel = True
+        
+    cpuNum = waifu2x.getCpuCoreNum()
+    gpuNum = waifu2x.getGpuCoreNum()
+    print("init, code:{}, gpuList:{}, cpuNum:{}, gpuNum:{}".format(str(sts), infos, cpuNum, gpuNum))    
 
-    # 选择Gpu,设置线程数
-    # select gpu, set thread num
+    # 选择Gpu, 如果使用cpu模式，设置使用的cpu核心数
+    # select gpu, if cpu model set cpu num
     if isCpuModel:
-        sts = waifu2x.initSet(-1, 1)
+        sts = waifu2x.initSet(-1, cpuNum // 2)
     else:
-        sts = waifu2x.initSet(0, 1)
+        sts = waifu2x.initSet(0)
     print("init set, code:{}".format(str(sts)))
 
     # 开启打印
@@ -40,7 +48,7 @@ if __name__ == "__main__":
     
     # 设置长宽缩放2.5倍
     # start convert, by setting scale
-    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, scale=2.5) > 0:
+    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, 2.5) > 0:
         count += 1
     backId = 2
 
@@ -48,7 +56,7 @@ if __name__ == "__main__":
     # CPU模式默认tileSize=800，如果内存小，请调低改值
     # start convert, by setting width and high
     # CPU Model default tileSize=800, if the memory is too small, Please turn down
-    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, format="png", width=900, high=800, tileSize=200) > 0:
+    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, 900, 800, "png", tileSize=200) > 0:
         count += 1
     
     saveName = {
@@ -63,7 +71,7 @@ if __name__ == "__main__":
         # block
         info = waifu2x.load(0)
         if not info:
-            continue 
+            break 
         count -= 1
         newData, status, backId, tick = info
         f = open(saveName.get(backId), "wb+")

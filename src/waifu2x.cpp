@@ -86,9 +86,9 @@ int Waifu2x::load(const std::string& parampath, const std::string& modelpath)
 #else
         specializations[0].i = 0;
 #endif
-
+        
         {
-            static std::vector<uint32_t> spirv;
+            std::vector<uint32_t> spirv;
             static ncnn::Mutex lock;
             {
                 ncnn::MutexLockGuard guard(lock);
@@ -107,7 +107,7 @@ int Waifu2x::load(const std::string& parampath, const std::string& modelpath)
         }
 
         {
-            static std::vector<uint32_t> spirv;
+            std::vector<uint32_t> spirv;
             static ncnn::Mutex lock;
             {
                 ncnn::MutexLockGuard guard(lock);

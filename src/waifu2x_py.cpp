@@ -68,12 +68,12 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
     if (!IsInit) return PyLong_FromLong(-1);
     if (IsInitSet) return PyLong_FromLong(0);
     Py_ssize_t  gpuId = 0;
-    Py_ssize_t  threadNum = 0;
+    Py_ssize_t  cpuNum = 0;
     Py_ssize_t  noSetDefaultPath = 0;
-    char* kwarg_names[] = { (char*)"gpuId",(char*)"threadNum", (char*)"noDefaultPath", NULL };
+    char* kwarg_names[] = { (char*)"gpuId",(char*)"cpuNum", (char*)"noDefaultPath", NULL };
     int sts;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|i", kwarg_names, &gpuId, &threadNum, &noSetDefaultPath))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|ii", kwarg_names, &gpuId, &cpuNum, &noSetDefaultPath))
         return PyLong_FromLong(-1);
     
     if (!noSetDefaultPath && waifu2x_get_path_size() <= 0)
@@ -98,7 +98,7 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
 #endif
         sts = waifu2x_init_path(path);
     }
-    sts = waifu2x_init_set(gpuId, threadNum);
+    sts = waifu2x_init_set(gpuId, cpuNum);
     if (!sts) IsInitSet = true;
     return PyLong_FromLong(sts);
 }
@@ -247,9 +247,17 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
     Py_ssize_t  tileSize = 0;
     float scale = 0;
 
-    char* kwarg_names[] = { (char*)"data",(char*)"modelIndex",(char*)"backId", (char*)"format", (char*)"width", (char*)"high", (char*)"scale", (char *)"tileSize", NULL };
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#ii|siifi", kwarg_names, &b, &size, &modelIndex, &callBack, &format, &width, &high, &scale, &tileSize))
-        return PyLong_FromLong(-2);
+    char* kwarg_names[] = { (char*)"data",(char*)"modelIndex",(char*)"backId",(char*)"scale", (char*)"format", (char *)"tileSize", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#iif|si", kwarg_names, &b, &size, &modelIndex, &callBack, &scale, &format, &tileSize))
+    {
+        PyErr_Clear();
+        char* kwarg_names2[] = { (char*)"data",(char*)"modelIndex",(char*)"backId", (char*)"width", (char*)"height",(char*)"format", (char*)"tileSize", NULL};
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#iiii|si", kwarg_names2, &b, &size, &modelIndex, &callBack, &width, &high, &format, &tileSize))
+        {
+            return PyLong_FromLong(-2);
+        }
+    }
+        
     //fprintf(stdout, "point:%p, size:%d, index:%d, back:%d, scale:%f \n", b, size, modelIndex, callBack, scale);
     if (!b)
     {
@@ -285,6 +293,37 @@ waifu2x_py_get_info(PyObject* self, PyObject* args)
     return pyList;
 }
 
+
+static PyObject*
+waifu2x_py_get_gpu_core(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+    if (!IsInit)
+    {
+        return PyLong_FromLong(0);
+    }
+    Py_ssize_t gpuId = 0;
+    double tick = 0;
+    int callBack;
+    char* kwarg_names[] = { (char*)"gpuId", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwarg_names, &gpuId))
+        Py_RETURN_NONE;
+
+    int gpu_queue_count = ncnn::get_gpu_info(gpuId).compute_queue_count();
+    return PyLong_FromLong(gpu_queue_count);
+}
+
+static PyObject*
+waifu2x_py_get_cpu_core(PyObject* self, PyObject* args)
+{
+    if (!IsInit)
+    {
+        return PyLong_FromLong(0);
+    }
+    int cpu_queue_count = ncnn::get_cpu_count();
+    return PyLong_FromLong(cpu_queue_count);
+}
+
+
 static PyObject*
 waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
 {
@@ -311,13 +350,16 @@ waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
 }
 
 static PyObject*
-waifu2x_py_stop(PyObject* self, PyObject* args)
+waifu2x_py_stop(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     if (!IsInit)
     {
         return PyLong_FromLong(0);
     }
-
+    //Py_ssize_t block = 0;
+    //char* kwarg_names[] = { (char*)"block", NULL };
+    //if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwarg_names, &block))
+    //    Py_RETURN_NONE;
     IsInit = false;
     IsInitSet = false;
     int sts = waifu2x_stop();

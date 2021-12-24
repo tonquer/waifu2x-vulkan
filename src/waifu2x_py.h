@@ -30,7 +30,13 @@ static PyObject*
 waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
-waifu2x_py_stop(PyObject* self, PyObject* args);
+waifu2x_py_stop(PyObject* self, PyObject* args, PyObject* kwargs);
+
+static PyObject*
+waifu2x_py_get_gpu_core(PyObject* self, PyObject* args, PyObject* kwargs);
+
+static PyObject*
+waifu2x_py_get_cpu_core(PyObject* self, PyObject* args);
 
 static PyObject*
 waifu2x_py_version(PyObject* self, PyObject* args);
@@ -48,11 +54,15 @@ static PyMethodDef SpamMethods[] = {
     {"init",  waifu2x_py_init, METH_VARARGS,
      "Init ncnn\n"},
     {"initSet",  (PyCFunction)waifu2x_py_init_set, METH_VARARGS | METH_KEYWORDS,
-     "Init setting\ngpuId: getGpuInfo get index \nthreadNum: convert thread num \n"},
+     "Init setting\ngpuId: getGpuInfo get index \ncpuNum(Option): CPU model use CPU num, default cpu num / 2 \n"},
     {"add",  (PyCFunction)waifu2x_py_add, METH_VARARGS | METH_KEYWORDS,
      "Add task, \ndata: img bytes \nmodelIndex: Model enum \nbackId: call back id \nformat(Option): export fmt, support bmp png jpg ico \nwidth(Option): export set width \nhigh(Option): export set high \nscale(Option): export set width and high \ntileSize(Option): default Auto\n"},
     {"getGpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
      "Get gpu list\n"},
+    {"getGpuCoreNum",  (PyCFunction)waifu2x_py_get_gpu_core, METH_VARARGS | METH_KEYWORDS,
+     "Get gpu core num\n"},
+    {"getCpuCoreNum",  (PyCFunction)waifu2x_py_get_cpu_core, METH_VARARGS,
+     "Get cpu core num\n"},
     {"remove",  (PyCFunction)waifu2x_py_remove, METH_VARARGS | METH_KEYWORDS,
      "Delete task, By callback ids\nbackIds: callback ids\n"},
     {"clear",  (PyCFunction)waifu2x_py_clear, METH_VARARGS,
@@ -61,7 +71,7 @@ static PyMethodDef SpamMethods[] = {
      "Clear proc task, by callback ids\nbackIds: callback ids\n"},
     {"load",  (PyCFunction)waifu2x_py_load, METH_VARARGS | METH_KEYWORDS,
      "Load a complete task \nblock: 0 block, 1 not block\n"},
-    {"stop",  waifu2x_py_stop, METH_VARARGS,
+    {"stop",  (PyCFunction)waifu2x_py_stop, METH_VARARGS | METH_KEYWORDS,
      "Kill thread\n"},
     {"getVersion",  waifu2x_py_version, METH_VARARGS,
      "Get version\nProject: https://github.com/tonquer/waifu2x-vulkan \n"},
@@ -74,7 +84,7 @@ static PyMethodDef SpamMethods[] = {
 
 static struct PyModuleDef spammodule = {
     PyModuleDef_HEAD_INIT,
-    "waifu2x",   /* name of module */
+    "waifu2x_vulkan",   /* name of module */
     "doc", /* module documentation, may be NULL */
     -1,       /* size of per-interpreter state of the module,
                  or -1 if the module keeps state in global variables. */
@@ -83,5 +93,5 @@ static struct PyModuleDef spammodule = {
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "1.0.9";
+static const char* Version = "1.1.0";
 #endif 

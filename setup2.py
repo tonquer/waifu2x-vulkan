@@ -31,7 +31,7 @@ if sts < 0:
 
 gpuList = waifu2x_vulkan.getGpuInfo()
 print(gpuList)
-sts = waifu2x_vulkan.initSet(gpuId=0, threadNum=2)
+sts = waifu2x_vulkan.initSet(gpuId=0)
 print("init set, code:{}".format(str(sts)))
 
 # Model List:
@@ -46,7 +46,7 @@ print("init set, code:{}".format(str(sts)))
 ```
 
 """
-Version = "1.0.9"
+Version = "1.1.0"
 
 Plat = sys.platform
 

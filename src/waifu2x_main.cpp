@@ -266,7 +266,16 @@ void* waifu2x_proc(void* args)
         }
         Tosave.put(v);
     }
-
+    return 0;
+}
+void* waifu2x_to_stop(void* args)
+{
+    for (int i = 0; i < TotalJobsProc; i++)
+    {
+        ProcThreads[i]->join();
+        delete ProcThreads[i];
+    }
+    ncnn::destroy_gpu_instance();
     return 0;
 }
 
@@ -494,35 +503,36 @@ int waifu2x_init_path(const Waifu2xChar* modelPath2)
     return 0;
 }
 
-int waifu2x_init_set(int gpuId2, int threadNum)
+int waifu2x_init_set(int gpuId2, int cpuNum)
 {
-    if (threadNum <= 0 || threadNum > 128) { return -1; };
+    if (cpuNum < 0 || cpuNum > 128) { return -1; };
 
-    int jobs_proc = threadNum;
+    int jobs_proc = cpuNum;
 
     //if (gpuId2 == 0) gpuId2 = ncnn::get_default_gpu_index();
     int cpu_count = std::max(1, ncnn::get_cpu_count());
     int gpu_count = ncnn::get_gpu_count();
     if (gpu_count == 0) gpuId2 = -1;
+
     if (gpuId2 < -1 || gpuId2 >= gpu_count)
     {
         waifu2x_printf(stderr, "[waifu2x] invalid gpu device\n");
-        ncnn::destroy_gpu_instance();
         return -1;
     }
     if (gpuId2 == -1)
     {
         jobs_proc = std::min(jobs_proc, cpu_count);
-        TotalJobsProc += jobs_proc;
+        if (jobs_proc <= 0) { jobs_proc = std::max(1, cpu_count / 2); }
+        NumThreads = jobs_proc;
+        TotalJobsProc = 1;
     }
     else
     {
         int gpu_queue_count = ncnn::get_gpu_info(gpuId2).compute_queue_count();
-        jobs_proc = std::min(jobs_proc, gpu_queue_count);
-        TotalJobsProc += jobs_proc;
+        if (TotalJobsProc <= 0) { TotalJobsProc = std::min(2, gpu_queue_count); }
+        NumThreads = 1;
     }
     
-    NumThreads = gpuId2 == -1 ? jobs_proc : 1;
     int index = 0;
     std::string models[3] = { "models-cunet", "models-upconv_7_anime_style_art_rgb", "models-upconv_7_photo" };
     for (int i = 0; i < 3; i++)
@@ -545,7 +555,7 @@ int waifu2x_init_set(int gpuId2, int threadNum)
     ProcThreads.resize(TotalJobsProc);
     {
         int total_jobs_proc_id = 0;
-        for (int j = 0; j < jobs_proc; j++)
+        for (int j = 0; j < TotalJobsProc; j++)
         {
             ProcThreads[total_jobs_proc_id++] = new ncnn::Thread(waifu2x_proc);
         }
@@ -652,14 +662,8 @@ int waifu2x_stop()
         Task end2;
         end2.id = -233;
         Tosave.put(end2);
-        for (int i = 0; i < TotalJobsProc; i++)
-        {
-            ProcThreads[i]->join();
-            delete ProcThreads[i];
-        }
-
+        ncnn::Thread t = ncnn::Thread(waifu2x_to_stop);
     }
-    ncnn::destroy_gpu_instance();
     return 0;
 }
 
