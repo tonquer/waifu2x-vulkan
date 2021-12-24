@@ -308,6 +308,11 @@ waifu2x_py_get_gpu_core(PyObject* self, PyObject* args, PyObject* kwargs)
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwarg_names, &gpuId))
         Py_RETURN_NONE;
 
+    int gpu_count = ncnn::get_gpu_count();
+    if (gpu_count <= 0)
+    {
+        return PyLong_FromLong(0);
+    }
     int gpu_queue_count = ncnn::get_gpu_info(gpuId).compute_queue_count();
     return PyLong_FromLong(gpu_queue_count);
 }

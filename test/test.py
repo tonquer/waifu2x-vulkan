@@ -25,7 +25,7 @@ if __name__ == "__main__":
         isCpuModel = True
         
     cpuNum = waifu2x.getCpuCoreNum()
-    gpuNum = waifu2x.getGpuCoreNum()
+    gpuNum = waifu2x.getGpuCoreNum(0)
     print("init, code:{}, gpuList:{}, cpuNum:{}, gpuNum:{}".format(str(sts), infos, cpuNum, gpuNum))    
 
     # 选择Gpu, 如果使用cpu模式，设置使用的cpu核心数
