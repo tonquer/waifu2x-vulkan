@@ -139,8 +139,8 @@ void* waifu2x_proc(void* args)
             int scale_run_count = 1;
             if (v.toH > 0 && v.toW > 0 && h > 0 && w > 0)
             {
-                scale_run_count = std::max(int(v.toW/ w), scale_run_count);
-                scale_run_count = std::max(int(v.toH/ h), scale_run_count);
+                scale_run_count = std::max(int(ceil(v.toW * 1.0/ w)), scale_run_count);
+                scale_run_count = std::max(int(ceil(v.toH * 1.0 / h)), scale_run_count);
                 scale_run_count = ceil(log(scale_run_count)/log(2));
                 scale_run_count = std::max(scale_run_count, 1);
             }
