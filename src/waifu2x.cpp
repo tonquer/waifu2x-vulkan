@@ -657,7 +657,6 @@ int Waifu2x::process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage, int tile
                     int pad_bottom = std::max(std::min((yi + 1) * TILE_SIZE_Y + prepadding_bottom - h, prepadding_bottom), 0);
                     int pad_left = std::max(prepadding - xi * TILE_SIZE_X, 0);
                     int pad_right = std::max(std::min((xi + 1) * TILE_SIZE_X + prepadding_right - w, prepadding_right), 0);
-
                     ncnn::Mat in_tile_padded;
                     ncnn::copy_make_border(in_tile[0], in_tile_padded, pad_top, pad_bottom, pad_left, pad_right, ncnn::BORDER_REPLICATE, 0.f, net.opt);
                     in_tile[0] = in_tile_padded;
@@ -774,7 +773,12 @@ int Waifu2x::process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage, int tile
 
                     if (channels == 4)
                     {
-                        memcpy(out.channel_range(3, 1), out_alpha_tile, out_alpha_tile.total() * sizeof(float));
+                        int pad_top = std::max(yi * TILE_SIZE_Y - in_tile_y0, 0);
+                        int pad_left = std::max(xi * TILE_SIZE_X - in_tile_x0, 0);
+                        for (int i = 0; i < out.h; i++)
+                        {
+                            memcpy(out.channel_range(3, 1).row(i), out_alpha_tile.row(pad_top * scale + i) + pad_left * scale, out.w * out.elemsize);
+                        }
                     }
                 }
             }
@@ -857,7 +861,14 @@ int Waifu2x::process_cpu(const ncnn::Mat& inimage, ncnn::Mat& outimage, int tile
 
                     if (channels == 4)
                     {
-                        memcpy(out.channel_range(3, 1), out_alpha_tile, out_alpha_tile.total() * sizeof(float));
+                        int pad_top = std::max(yi * TILE_SIZE_Y - in_tile_y0, 0);
+                        int pad_left = std::max(xi * TILE_SIZE_X - in_tile_x0, 0);
+                        
+                        for (int i = 0; i < out.h; i++)
+                        {
+                            memcpy(out.channel_range(3, 1).row(i), out_alpha_tile.row(pad_top * scale + i)+ pad_left * scale, out.w * out.elemsize);
+                        }
+                        
                     }
                 }
             }
