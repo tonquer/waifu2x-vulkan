@@ -52,6 +52,7 @@ public:
     struct timeb encodeTick;
     struct timeb procTick;
     struct timeb saveTick;
+    double allTick = 0;
     void* out = 0;
     int outSize = 0;
 };

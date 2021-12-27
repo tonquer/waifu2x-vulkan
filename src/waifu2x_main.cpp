@@ -50,14 +50,8 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     outSize = v.outSize;
 
     v.out = NULL;
-    double encodeTick = (v.encodeTick.time + v.encodeTick.millitm/1000.0) - (v.startTick.time + v.encodeTick.millitm / 1000.0);
-    double procTick = (v.procTick.time + v.procTick.millitm / 1000.0) - (v.encodeTick.time + v.encodeTick.millitm / 1000.0);
-    double decodeTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.procTick.time + v.procTick.millitm/1000.0);
-    double allTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 10000.0);
 
-    waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, encode:%.2fs, proc:%.2fs, decode:%.2fs, \n",
-        v.callBack, encodeTick, procTick, decodeTick);
-    tick = allTick;
+    tick = v.allTick;
     return v.id;
 }
 
@@ -257,6 +251,13 @@ void* waifu2x_proc(void* args)
                 waifu2x_printf(stderr, "[waifu2x] encode image %d failed, %s\n", v.id, error);
             }
             ftime(&v.saveTick);
+            double encodeTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.startTick.time + v.encodeTick.millitm / 1000.0);
+            double procTick = (v.procTick.time + v.procTick.millitm / 1000.0) - (v.encodeTick.time + v.encodeTick.millitm / 1000.0);
+            double decodeTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.procTick.time + v.procTick.millitm / 1000.0);
+            double allTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 10000.0);
+            v.allTick = allTick;
+            waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, encode:%.2fs, proc:%.2fs, decode:%.2fs, \n",
+                v.callBack, encodeTick, procTick, decodeTick);
         }
         else
         {
