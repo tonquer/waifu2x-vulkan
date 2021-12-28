@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # 选择Gpu, 如果使用cpu模式，设置使用的cpu核心数
     # select gpu, if cpu model set cpu num
     if isCpuModel:
-        sts = waifu2x.initSet(-1, cpuNum // 2)
+        sts = waifu2x.initSet(-1, cpuNum)
     else:
         sts = waifu2x.initSet(0)
     print("init set, code:{}".format(str(sts)))
@@ -80,3 +80,4 @@ if __name__ == "__main__":
     
     # free ncnn, close thread
     waifu2x.stop()
+    time.sleep(5)
