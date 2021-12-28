@@ -88,10 +88,10 @@ elif Plat in ["win32", "win64"]:
         "VulkanSDK/windows/vulkan-1.lib",
         build_temp + "/glslang/SPIRV/Release/SPIRV.lib",
         build_temp + "/glslang/glslang/Release/glslang.lib",
-        build_temp + "/glslang/glslang/MachineIndependent.lib",
+        build_temp + "/glslang/glslang/Release/MachineIndependent.lib",
         build_temp + "/glslang/OGLCompilersDLL/Release/OGLCompiler.lib",
         build_temp + "/glslang/glslang/OSDependent/Windows/Release/OSDependent.lib",
-        build_temp + "/glslang/glslang/GenericCodeGen.lib",
+        build_temp + "/glslang/glslang/Release/GenericCodeGen.lib",
     ],
     )
     models = [example_module]
