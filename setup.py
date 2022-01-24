@@ -3,6 +3,7 @@ from shutil import copyfile, copytree, rmtree
 from setuptools.command.build_ext import build_ext
 import subprocess
 from distutils.core import Extension
+import platform
 
 long_description = \
 """
@@ -195,6 +196,10 @@ class CMakeBuild(build_ext):
         if not os.path.exists(build_temp):
             os.makedirs(build_temp)
         if Plat == "darwin":
+            if "86" not in platform.machine():
+                cmake_args += [
+                    "-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64",
+                ]
             cmake_args += [
                 "-DVulkan_LIBRARY={}".format(os.path.abspath("VulkanSDK/macos")),
                 "-DVulkan_INCLUDE_DIR={}".format(os.path.abspath("VulkanSDK/macos/include")),
