@@ -67,7 +67,6 @@ if Plat == "darwin":
         build_temp + "/glslang/OGLCompilersDLL/libOGLCompiler.a",
         build_temp + "/glslang/glslang/OSDependent/Unix/libOSDependent.a",
         build_temp + "/glslang/glslang/libGenericCodeGen.a",
-        "VulkanSDK/macos/libomp.a",
         "-framework", "Metal",
         "-framework", "QuartzCore",
         "-framework", "CoreGraphics",
@@ -201,6 +200,11 @@ class CMakeBuild(build_ext):
                     "-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64",
                 ]
             cmake_args += [
+                "-DOpenMP_C_FLAGS=\"-Xclang -fopenmp\"",
+                "-DOpenMP_CXX_FLAGS=\"-Xclang -fopenmp\"",
+                "-DOpenMP_C_LIB_NAMES=libomp",
+                "-DOpenMP_CXX_LIB_NAMES=libomp",
+                "-DOpenMP_libomp_LIBRARY={}".format(os.path.abspath("VulkanSDK/macos/libomp.a")),
                 "-DVulkan_LIBRARY={}".format(os.path.abspath("VulkanSDK/macos")),
                 "-DVulkan_INCLUDE_DIR={}".format(os.path.abspath("VulkanSDK/macos/include")),
             ]
