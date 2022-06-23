@@ -9,7 +9,8 @@ long_description = \
 # waifu2x-ncnn-vulkan-python
 - This is modified [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan), Export pyd and so files to Python
 - Support Linux, Windows, MacOs
-- Support JPG, PNG, BMP
+- Support import JPG, PNG, BMP, GIF, WEBP, Animated WEBP 
+- Support export JPG, PNG, BMP, WEBP, Animated WEBP
 - Support vulkan gpu and cpu
 
 # Install
@@ -39,7 +40,7 @@ print("init set, code:{}".format(str(sts)))
 
 # add picture ...
 # waifu2x.add(data=imgData, modelIndex=waifu2x_vulkan.MODEL_ANIME_STYLE_ART_RGB_NOISE0, backId=0, scale=2.5)
-# waifu2x.add(data=imgData, modelIndex=waifu2x_vulkan.MODEL_ANIME_STYLE_ART_RGB_NOISE0, backId=0, format="png", width=1000, high=1000)
+# waifu2x.add(data=imgData, modelIndex=waifu2x_vulkan.MODEL_ANIME_STYLE_ART_RGB_NOISE0, backId=0, format="webp", width=1000, high=1000)
 
 # load picture...
 # newData, status, backId, tick = waifu2x.load(0)
@@ -58,7 +59,7 @@ setuptools.setup(
     author="tonquer",
     license="MIT",
     author_email="tonquer@qq.com",
-    description="A waifu2x tool, use vulkan.",
+    description="A waifu2x python tool, use nihui/waifu2x-ncnn-vulkan",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tonquer/waifu2x-vulkan",

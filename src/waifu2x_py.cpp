@@ -117,6 +117,13 @@ waifu2x_py_clear(PyObject* self, PyObject* args)
 
 
 static PyObject*
+waifu2x_py_get_error(PyObject* self, PyObject* args)
+{
+    std::string err = waifu2x_get_error();
+    return PyUnicode_FromString(err.c_str());
+}
+
+static PyObject*
 waifu2x_py_set_debug(PyObject* self, PyObject* args)
 {
     unsigned int isDebug;
@@ -254,6 +261,7 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
         char* kwarg_names2[] = { (char*)"data",(char*)"modelIndex",(char*)"backId", (char*)"width", (char*)"height",(char*)"format", (char*)"tileSize", NULL};
         if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y#iiii|si", kwarg_names2, &b, &size, &modelIndex, &callBack, &width, &high, &format, &tileSize))
         {
+            waifu2x_set_error("invalid params");
             return PyLong_FromLong(-2);
         }
     }
@@ -261,6 +269,7 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
     //fprintf(stdout, "point:%p, size:%d, index:%d, back:%d, scale:%f \n", b, size, modelIndex, callBack, scale);
     if (!b)
     {
+        waifu2x_set_error("invalid data");
         return PyLong_FromLong(-3);
     }
     //b = (unsigned char* )PyBytes_AsString((PyObject*)c);

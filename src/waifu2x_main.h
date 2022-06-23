@@ -33,14 +33,13 @@ class Task
 {
 public:
     int id = 0;
-    int webp;
 
     void* fileDate;
     unsigned long fileSize;
-    std::string file = "jpg";
+    std::string file;
+    std::string err;
     bool isSuc = true;
-    ncnn::Mat inimage;
-    ncnn::Mat outimage;
+
     int callBack = 0;
     int modelIndex;
     unsigned long toW;
@@ -49,12 +48,35 @@ public:
     int tileSize = 0;
 
     struct timeb startTick;
+    struct timeb decodeTick;
     struct timeb encodeTick;
     struct timeb procTick;
     struct timeb saveTick;
     double allTick = 0;
+
+    std::list<int> inFrame;
+    std::list<ncnn::Mat *> inImage;
+    std::list<ncnn::Mat *> outImage;
+
     void* out = 0;
     int outSize = 0;
+
+    void clear_in_image()
+    {
+        for (std::list<ncnn::Mat*>::iterator in = this->inImage.begin(); in != this->inImage.end(); in++)
+        {
+            delete *in;
+        }
+        this->inImage.clear();
+    }
+    void clear_out_image()
+    {
+        for (std::list<ncnn::Mat*>::iterator in = this->outImage.begin(); in != this->outImage.end(); in++)
+        {
+           delete *in;
+        }
+        this->outImage.clear();
+    }
 };
 
 class TaskQueue
@@ -113,7 +135,8 @@ public:
             tasks.pop();
             if (v.fileDate) free(v.fileDate);
             v.fileDate = NULL;
-            if (v.inimage.data) { free(v.inimage.data); v.inimage.data = NULL; }
+            v.clear_in_image();
+            v.clear_out_image();
         }
 
         lock.unlock();
@@ -140,7 +163,8 @@ public:
             {
                 if (v.fileDate) free(v.fileDate);
                 v.fileDate = NULL;
-                if (v.inimage.data) { free(v.inimage.data); v.inimage.data = NULL; }
+                v.clear_in_image();
+                v.clear_out_image();
             }
         }
         tasks = newData;
@@ -166,11 +190,15 @@ int waifu2x_printf(void* p, const char* fmt, ...);
 int waifu2x_printf(void* p, const wchar_t* fmt, ...);
 int waifu2x_remove_wait(std::set<int>&);
 int waifu2x_remove(std::set<int>&);
+void waifu2x_set_error(const char* err);
+std::string waifu2x_get_error();
 
 static int GpuId;
 static int TotalJobsProc = 0;
 static int NumThreads = 1;
+static std::string ErrMsg;
 static std::vector<ncnn::Thread*> ProcThreads;
+static std::vector<ncnn::Thread*> OtherThreads;
 static std::vector<Waifu2x*> Waifu2xList;
 static int TaskId = 1;
 

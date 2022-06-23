@@ -18,6 +18,9 @@ static PyObject*
 waifu2x_py_clear (PyObject* self, PyObject* args);
 
 static PyObject*
+waifu2x_py_get_error(PyObject* self, PyObject* args);
+
+static PyObject*
 waifu2x_py_remove_wait(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
@@ -56,7 +59,7 @@ static PyMethodDef SpamMethods[] = {
     {"initSet",  (PyCFunction)waifu2x_py_init_set, METH_VARARGS | METH_KEYWORDS,
      "Init setting\ngpuId: getGpuInfo get index \ncpuNum(Option): CPU model use CPU num, default cpu num / 2 \n"},
     {"add",  (PyCFunction)waifu2x_py_add, METH_VARARGS | METH_KEYWORDS,
-     "Add task, \ndata: img bytes \nmodelIndex: Model enum \nbackId: call back id \nformat(Option): export fmt, support bmp png jpg ico \nwidth(Option): export set width \nhigh(Option): export set high \nscale(Option): export set width and high \ntileSize(Option): default Auto\n"},
+     "Add task, \ndata: img bytes \nmodelIndex: Model enum \nbackId: call back id \nformat(Option): export fmt, default import fmt \nimport support bmp png jpg gif webp \nexport support bmp png jpg webp \nwidth(Option): export set width \nhigh(Option): export set high \nscale(Option): export set width and high \ntileSize(Option): default Auto\n"},
     {"getGpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
      "Get gpu list\n"},
     {"getGpuCoreNum",  (PyCFunction)waifu2x_py_get_gpu_core, METH_VARARGS | METH_KEYWORDS,
@@ -71,6 +74,8 @@ static PyMethodDef SpamMethods[] = {
      "Clear proc task, by callback ids\nbackIds: callback ids\n"},
     {"load",  (PyCFunction)waifu2x_py_load, METH_VARARGS | METH_KEYWORDS,
      "Load a complete task \nblock: 0 block, 1 not block\n"},
+    {"getLastError",  (PyCFunction)waifu2x_py_get_error, METH_VARARGS,
+     "Get last error msg\n"},
     {"stop",  (PyCFunction)waifu2x_py_stop, METH_VARARGS | METH_KEYWORDS,
      "Kill thread\n"},
     {"getVersion",  waifu2x_py_version, METH_VARARGS,

@@ -1,29 +1,15 @@
 #include "waifu2x_main.h"
-
-//#if _WIN32
-// image decoder and encoder with wic
-//#include "wic_image.h"
-//#else // _WIN32
-// image decoder and encoder with stb
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_NO_PSD
-#define STBI_NO_TGA
-#define STBI_NO_HDR
-#define STBI_NO_PIC
-#define STBI_NO_GIF
-#define STBI_NO_STDIO
-#include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb_image_resize.h"
+#include "other_image.h"
 
 //#endif // _WIN32
 
 #include <cmath>
 
+TaskQueue Todecode;
 TaskQueue Toproc;
+TaskQueue Toencode;
 TaskQueue Tosave;
+
 bool IsDebug = false;
 
 Waifu2xChar ModelPath[1024] = {0};
@@ -38,12 +24,14 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
 
     if (v.id == -233)
         return -1;
+
     callBack = v.callBack;
     if (v.fileDate) {
         free(v.fileDate);
         v.fileDate = NULL;
     }
     if (!v.isSuc) {
+        waifu2x_set_error(v.err.c_str());
         return v.id;
     }
     out = v.out;
@@ -54,57 +42,83 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     tick = v.allTick;
     return v.id;
 }
-
-void* waifu2x_proc(void* args)
+void* waifu2x_decode(void* args)
 {
     const Waifu2x* waifu2x;
     for (;;)
     {
         Task v;
-
-        Toproc.get(v);
+        Todecode.get(v);
         if (v.id == -233)
             break;
         if (v.modelIndex >= Waifu2xList.size())
         {
             v.isSuc = false; Tosave.put(v); continue;
         }
+        ftime(&v.startTick);
+        bool isSuc = to_load(v);
+        ftime(&v.decodeTick);
+        if (v.fileDate) {
+            free(v.fileDate);
+            v.fileDate = NULL;
+        }
+        if (isSuc)
+        {
+            Toproc.put(v);
+        }
         else
         {
-            waifu2x = Waifu2xList[v.modelIndex];
+            v.err = stbi_failure_reason();
+            v.isSuc = false;
+            Tosave.put(v);
         }
-        ftime(&v.startTick);
-        unsigned char* pixeldata = 0;
-        int w;
-        int h;
-        int c;
-//#if _WIN32
-//        pixeldata = wic_decode_image_by_data((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c);
-//#else // _WIN32
-        pixeldata = stbi_load_from_memory((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c, 0);
-        if (pixeldata)
+    }
+    return NULL;
+}
+void* waifu2x_encode(void* args)
+{
+    const Waifu2x* waifu2x;
+    for (;;)
+    {
+        Task v;
+        Toencode.get(v);
+        if (v.id == -233)
+            break;
+        bool isSuc = to_save(v);
+        v.clear_out_image();
+
+        if (isSuc)
         {
-            // stb_image auto channel
-            if (c == 1)
-            {
-                // grayscale -> rgb
-                stbi_image_free(pixeldata);
-                pixeldata = stbi_load_from_memory((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c, 3);
-                c = 3;
-            }
-            else if (c == 2)
-            {
-                // grayscale + alpha -> rgba
-                stbi_image_free(pixeldata);
-                pixeldata = stbi_load_from_memory((unsigned char*)v.fileDate, v.fileSize, &w, &h, &c, 4);
-                c = 4;
-            }
+            Tosave.put(v);
         }
-//#endif // _WIN32
-        if (v.fileDate) { 
-            free(v.fileDate); 
-            v.fileDate = NULL; 
+        else
+        {
+            v.err = stbi_failure_reason();
+            v.isSuc = false; 
+            Tosave.put(v);
         }
+        ftime(&v.encodeTick);
+        double decodeTick = (v.decodeTick.time + v.decodeTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 1000.0);
+        double procTick = (v.procTick.time + v.procTick.millitm / 1000.0) - (v.decodeTick.time + v.decodeTick.millitm / 1000.0);
+        double encodeTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.procTick.time + v.procTick.millitm / 1000.0);
+        double allTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 10000.0);
+        v.allTick = allTick;
+        waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, decode:%.2fs, proc:%.2fs, encode:%.2fs, \n",
+            v.callBack, decodeTick, procTick, encodeTick);
+    }
+    return NULL;
+}
+void* waifu2x_proc(void* args)
+{
+    const Waifu2x* waifu2x;
+    for (;;)
+    {
+        Task v;
+        Toproc.get(v);
+        if (v.id == -233)
+            break;
+
+        waifu2x = Waifu2xList[v.modelIndex];
 
         const char* name;
         if (GpuId >= 0)
@@ -114,163 +128,79 @@ void* waifu2x_proc(void* args)
 
         waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, tta:%d, tileSize:%d\n",
             v.callBack, name, v.file.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, waifu2x->tta_mode, v.tileSize);
-
-        if (waifu2x && pixeldata)
+        int scale_run_count = 1;
+        int frame = 0;
+        for (std::list<ncnn::Mat *>::iterator in = v.inImage.begin(); in != v.inImage.end(); in++)
         {
-            v.inimage = ncnn::Mat(w, h, (void*)pixeldata, (size_t)c, c);
-            if (v.toH <= 0 || v.toW <= 0)
+            frame++;
+            ncnn::Mat& inimage = **in;
+            if (in == v.inImage.begin())
             {
-                v.toH = ceil(v.scale * h);
-                v.toW = ceil(v.scale * w);
-            }
+                if (v.toH <= 0 || v.toW <= 0)
+                {
+                    v.toH = ceil(v.scale * inimage.h);
+                    v.toW = ceil(v.scale * inimage.w);
+                }
 
-            //if (c == 4)
-            //{
-            //    v.file = "png";
-            //}
-            ftime(&v.encodeTick);
-            //waifu2x->process(v.inimage, v.outimage);
-            int scale_run_count = 1;
-            if (v.toH > 0 && v.toW > 0 && h > 0 && w > 0)
-            {
-                scale_run_count = std::max(int(ceil(v.toW * 1.0/ w)), scale_run_count);
-                scale_run_count = std::max(int(ceil(v.toH * 1.0 / h)), scale_run_count);
-                scale_run_count = ceil(log(scale_run_count)/log(2));
-                scale_run_count = std::max(scale_run_count, 1);
-            }
-
-            int toW = w * pow(waifu2x->scale, scale_run_count);
-            int toH = h * pow(waifu2x->scale, scale_run_count);
-            v.outimage = ncnn::Mat(toW, toH, (size_t)c, c);
-            
-            if (waifu2x->scale <= 1)
-            {
+                //if (c == 4)
+                //{
+                //    v.file = "png";
+                //}
+                //waifu2x->process(v.inimage, v.outimage);
                 scale_run_count = 1;
+                if (v.toH > 0 && v.toW > 0 && inimage.h > 0 && inimage.w > 0)
+                {
+                    scale_run_count = std::max(int(ceil(v.toW * 1.0 / inimage.w)), scale_run_count);
+                    scale_run_count = std::max(int(ceil(v.toH * 1.0 / inimage.h)), scale_run_count);
+                    scale_run_count = ceil(log(scale_run_count) / log(2));
+                    scale_run_count = std::max(scale_run_count, 1);
+                }
+
+
+                if (waifu2x->scale <= 1)
+                {
+                    scale_run_count = 1;
+                }
             }
+            int toW = inimage.w * pow(waifu2x->scale, scale_run_count);
+            int toH = inimage.h * pow(waifu2x->scale, scale_run_count);
+            ncnn::Mat* outimage = new ncnn::Mat(toW, toH, (size_t)inimage.elemsize, (int)inimage.elemsize);
+
             for (int i = 0; i < scale_run_count; i++)
             {
                 if (i == scale_run_count - 1)
                 {
-                    waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
-                        v.callBack, i + 1, v.inimage.h, v.outimage.h, v.inimage.w, v.outimage.w);
-                    waifu2x->process(v.inimage, v.outimage, v.tileSize);
-                    v.inimage.release();
+                    waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, frame:%d, h:%d->%d, w:%d->%d \n",
+                        v.callBack, i + 1, frame, inimage.h, outimage->h, inimage.w, outimage->w);
+                    waifu2x->process(inimage, *outimage, v.tileSize);
+                    inimage.release();
                 }
                 else
                 {
-                    ncnn::Mat tmpimage(v.inimage.w * 2, v.inimage.h * 2, (size_t)v.inimage.elemsize, (int)v.inimage.elemsize);
-                    waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, h:%d->%d, w:%d->%d \n",
-                        v.callBack, i + 1, v.inimage.h, tmpimage.h, v.inimage.w, tmpimage.w);
-                    waifu2x->process(v.inimage, tmpimage, v.tileSize);
-                    v.inimage.release();
-                    v.inimage = tmpimage;
+                    ncnn::Mat tmpimage(inimage.w * 2, inimage.h * 2, (size_t)inimage.elemsize, (int)inimage.elemsize);
+                    waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, count:%d, frame:%d, h:%d->%d, w:%d->%d \n",
+                        v.callBack, i + 1, frame, inimage.h, tmpimage.h, inimage.w, tmpimage.w);
+                    waifu2x->process(inimage, tmpimage, v.tileSize);
+                    inimage.release();
+                    inimage = tmpimage;
                 }
             }
-//#if _WIN32
-//            if (pixeldata) { free(pixeldata); pixeldata = NULL; };
-//#else
-            if (pixeldata) stbi_image_free(pixeldata);
-//#endif
-            ftime(&v.procTick);
-            int success = 0;
-            if (!v.file.compare("bmp") || !v.file.compare("BMP"))
-            {
-                unsigned char* odata = (unsigned char*)malloc(v.toW * v.toH * v.outimage.elempack);
-                stbir_resize((unsigned char*)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
-                    STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
-                    STBIR_FILTER_BOX, STBIR_FILTER_BOX,
-                    STBIR_COLORSPACE_SRGB, nullptr
-                );
-                WriteData data(v.toH, v.toW, v.outimage.elempack);
-                stbi_write_bmp_to_func((stbi_write_func*)write_jpg_to_mem, (void*)&data, v.toW, v.toH, v.outimage.elempack, odata);
-                stbi_image_free(odata);
-                if (data.writeSize > 0)
-                {
-                    success = true;
-                    v.out = malloc(data.writeSize);
-                    v.outSize = data.writeSize;
-                    memcpy(v.out, data.data, v.outSize);
-                }
-                else {
-                    success = false;
-                }
-            }
-            else if (!v.file.compare("png") || !v.file.compare("PNG"))
-            {
-                /*#if _WIN32
-                    success = wic_encode_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
-                #else*/
-                {
-                    unsigned char *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
-                    stbir_resize((unsigned char *)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
-                                STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
-                                STBIR_FILTER_BOX, STBIR_FILTER_BOX,
-                                STBIR_COLORSPACE_SRGB, nullptr
-                    ); 
-                    v.out = stbi_write_png_to_mem(odata, 0, v.toW, v.toH, v.outimage.elempack, &v.outSize);
-                    success = (v.out != nullptr);
-                    stbi_image_free(odata);
-                } 
-                //#endif
-            }
-            else if (!v.file.compare("jpg") || !v.file.compare("JPG") || !v.file.compare("jpeg") || !v.file.compare("JPEG"))
-            {
-                //#if _WIN32
-                //    success = wic_encode_jpeg_image_to_data(v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, v.out, v.outSize, v.modelIndex, v.toW, v.toH, w, h);
-                //#else
-                {
-                    unsigned char *odata = (unsigned char *) malloc(v.toW * v.toH * v.outimage.elempack);
-                    stbir_resize((unsigned char *)v.outimage.data, v.outimage.w, v.outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, v.outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
-                                STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
-                                STBIR_FILTER_BOX, STBIR_FILTER_BOX,
-                                STBIR_COLORSPACE_SRGB, nullptr
-                    );
-                    WriteData data(v.toH, v.toW, v.outimage.elempack);
-                    stbi_write_jpg_to_func((stbi_write_func *)write_jpg_to_mem, (void *)&data, v.toW, v.toH,  v.outimage.elempack, odata, 100);
-                    stbi_image_free(odata);
-                    if (data.writeSize > 0)
-                    {
-                        success = true;
-                        v.out = malloc(data.writeSize);
-                        v.outSize = data.writeSize;
-                        memcpy(v.out, data.data, v.outSize);
-                    }else{
-                        success = false;
-                    }
-                    
-                }
-                //#endif
-            }
-            v.outimage.release();
-            if (success)
-            {
-            }
-            else
-            {
-                const char* error = stbi_failure_reason();
-                waifu2x_printf(stderr, "[waifu2x] encode image %d failed, %s\n", v.id, error);
-            }
-            ftime(&v.saveTick);
-            double encodeTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.startTick.time + v.encodeTick.millitm / 1000.0);
-            double procTick = (v.procTick.time + v.procTick.millitm / 1000.0) - (v.encodeTick.time + v.encodeTick.millitm / 1000.0);
-            double decodeTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.procTick.time + v.procTick.millitm / 1000.0);
-            double allTick = (v.saveTick.time + v.saveTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 10000.0);
-            v.allTick = allTick;
-            waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, encode:%.2fs, proc:%.2fs, decode:%.2fs, \n",
-                v.callBack, encodeTick, procTick, decodeTick);
+            v.outImage.push_back(outimage);
+
         }
-        else
-        {
-            const char* error = stbi_failure_reason();
-            waifu2x_printf(stderr, "[waifu2x] decode image %d failed, %s\n", v.id, error);
-            v.isSuc = false;
-        }
-        Tosave.put(v);
+        ftime(&v.procTick);
+        v.clear_in_image();
+        Toencode.put(v);
     }
-    return 0;
+    return NULL;
 }
 void* waifu2x_to_stop(void* args)
 {
+    for (int i = 0; i < OtherThreads.size(); i++)
+    {
+        OtherThreads[i]->join();
+        delete OtherThreads[i];
+    }
     for (int i = 0; i < TotalJobsProc; i++)
     {
         ProcThreads[i]->join();
@@ -555,6 +485,12 @@ int waifu2x_init_set(int gpuId2, int cpuNum)
     // waifu2x proc
     ProcThreads.resize(TotalJobsProc);
     {
+
+        ncnn::Thread *load_thread = new ncnn::Thread(waifu2x_encode);
+        ncnn::Thread* save_thread = new ncnn::Thread(waifu2x_decode);
+        OtherThreads.push_back(load_thread);
+        OtherThreads.push_back(save_thread);
+
         int total_jobs_proc_id = 0;
         for (int j = 0; j < TotalJobsProc; j++)
         {
@@ -641,11 +577,21 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
         return -1;
     int sts = waifu2x_check_init_model(modelIndex);
     if (sts < 0)
+    {
+        waifu2x_set_error("invalid model index");
         return sts;
-
+    }
     if (format) v.file = format;
-    Toproc.put(v);
-    return TaskId;
+    
+    transform(v.file.begin(), v.file.end(), v.file.begin(), ::tolower);
+    if (!v.file.length() == 0 || !v.file.compare("jpg") || !v.file.compare("jpeg") || !v.file.compare("png") || !v.file.compare("webp") || !v.file.compare("jpg") || !v.file.compare("bmp"))
+    {
+        Todecode.put(v);
+        return TaskId;
+    }
+
+    waifu2x_set_error("invalid pictrue format");
+    return -1;
 }
 
 int waifu2x_stop()
@@ -654,7 +600,6 @@ int waifu2x_stop()
     {
         Task end;
         end.id = -233;
-
         for (int i = 0; i < TotalJobsProc; i++)
         {
             Toproc.put(end);
@@ -663,14 +608,18 @@ int waifu2x_stop()
         Task end2;
         end2.id = -233;
         Tosave.put(end2);
+        Toencode.put(end2);
+        Todecode.put(end2);
         ncnn::Thread t = ncnn::Thread(waifu2x_to_stop);
     }
     return 0;
 }
 
 int waifu2x_clear()
-{
+{   
+    Toencode.clear();
     Toproc.clear();
+    Todecode.clear();
     Tosave.clear();
     return 0;
 }
@@ -683,13 +632,16 @@ int waifu2x_set_debug(bool isdebug)
 
 int waifu2x_remove_wait(std::set<int>& taskIds)
 {
+    Todecode.remove(taskIds);
     Toproc.remove(taskIds);
     return 0;
 }
 
 int waifu2x_remove(std::set<int> &taskIds)
 {
+    Toencode.remove(taskIds);
     Toproc.remove(taskIds);
+    Todecode.remove(taskIds);
     Tosave.remove(taskIds);
     return 0;
 }
@@ -720,4 +672,14 @@ int waifu2x_printf(void* p, const wchar_t* fmt, ...)
         return result;
     }
     return 0;
+}
+
+void waifu2x_set_error(const char* err)
+{
+    ErrMsg = err;
+}
+
+std::string waifu2x_get_error()
+{
+    return ErrMsg;
 }

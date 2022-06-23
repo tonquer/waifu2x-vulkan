@@ -10,7 +10,8 @@ long_description = \
 # waifu2x-ncnn-vulkan-python
 - This is modified [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan), Export pyd and so files to Python
 - Support Linux, Windows, MacOs
-- Support JPG, PNG, BMP
+- Support import JPG, PNG, BMP, GIF, WEBP, Animated WEBP 
+- Support export JPG, PNG, BMP, WEBP, Animated WEBP
 - Support vulkan gpu and cpu
 
 # Install
@@ -40,7 +41,7 @@ print("init set, code:{}".format(str(sts)))
 
 # add picture ...
 # waifu2x.add(data=imgData, modelIndex=waifu2x_vulkan.MODEL_ANIME_STYLE_ART_RGB_NOISE0, backId=0, scale=2.5)
-# waifu2x.add(data=imgData, modelIndex=waifu2x_vulkan.MODEL_ANIME_STYLE_ART_RGB_NOISE0, backId=0, format="png", width=1000, high=1000)
+# waifu2x.add(data=imgData, modelIndex=waifu2x_vulkan.MODEL_ANIME_STYLE_ART_RGB_NOISE0, backId=0, format="webp", width=1000, high=1000)
 
 # load picture...
 # newData, status, backId, tick = waifu2x.load(0)
@@ -56,17 +57,20 @@ print(Plat)
 build_temp = "build/temp/"
 if Plat == "darwin":
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
-    include_dirs=["src/", "src/ncnn/src", "build/temp/src", "VulkanSDK/macos/include"],
+    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "build/temp/src", "VulkanSDK/macos/include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
     extra_objects=[
-        build_temp + "/src/libncnn.a",
+        build_temp + "/ncnntmp/src/libncnn.a",
+        build_temp + "/webptmp/libwebp.a",
+        build_temp + "/webptmp/libwebpmux.a",
+        build_temp + "/webptmp/libwebpdemux.a",
         "VulkanSDK/macos/libMoltenVK.a",
-        build_temp + "/glslang/SPIRV/libSPIRV.a",
-        build_temp + "/glslang/glslang/libglslang.a",
-        build_temp + "/glslang/glslang/libMachineIndependent.a",
-        build_temp + "/glslang/OGLCompilersDLL/libOGLCompiler.a",
-        build_temp + "/glslang/glslang/OSDependent/Unix/libOSDependent.a",
-        build_temp + "/glslang/glslang/libGenericCodeGen.a",
+        build_temp + "/ncnntmp/glslang/SPIRV/libSPIRV.a",
+        build_temp + "/ncnntmp/glslang/glslang/libglslang.a",
+        build_temp + "/ncnntmp/glslang/glslang/libMachineIndependent.a",
+        build_temp + "/ncnntmp/glslang/OGLCompilersDLL/libOGLCompiler.a",
+        build_temp + "/ncnntmp/glslang/glslang/OSDependent/Unix/libOSDependent.a",
+        build_temp + "/ncnntmp/glslang/glslang/libGenericCodeGen.a",
         "-framework", "Metal",
         "-framework", "QuartzCore",
         "-framework", "CoreGraphics",
@@ -80,35 +84,41 @@ if Plat == "darwin":
     models = [example_module]
 elif Plat in ["win32", "win64"]:
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
-    include_dirs=["src/", "src/ncnn/src", "build/temp/src", "VulkanSDK/Include"],
+    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "src/libwebp/src", "build/temp/src", "VulkanSDK/Include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
     define_macros=[("WIN32",1), ("NOMINMAX",1), ("NDEBUG",1)],
     extra_objects=[
-        build_temp + "/src/Release/ncnn.lib",
+        build_temp + "/ncnntmp/src/Release/ncnn.lib",
+        build_temp + "/webptmp/Release/webp.lib",
+        build_temp + "/webptmp/Release/webpmux.lib",
+        build_temp + "/webptmp/Release/webpdemux.lib",
         "VulkanSDK/windows/vulkan-1.lib",
-        build_temp + "/glslang/SPIRV/Release/SPIRV.lib",
-        build_temp + "/glslang/glslang/Release/glslang.lib",
-        build_temp + "/glslang/glslang/Release/MachineIndependent.lib",
-        build_temp + "/glslang/OGLCompilersDLL/Release/OGLCompiler.lib",
-        build_temp + "/glslang/glslang/OSDependent/Windows/Release/OSDependent.lib",
-        build_temp + "/glslang/glslang/Release/GenericCodeGen.lib",
+        build_temp + "/ncnntmp/glslang/SPIRV/Release/SPIRV.lib",
+        build_temp + "/ncnntmp/glslang/glslang/Release/glslang.lib",
+        build_temp + "/ncnntmp/glslang/glslang/Release/MachineIndependent.lib",
+        build_temp + "/ncnntmp/glslang/OGLCompilersDLL/Release/OGLCompiler.lib",
+        build_temp + "/ncnntmp/glslang/glslang/OSDependent/Windows/Release/OSDependent.lib",
+        build_temp + "/ncnntmp/glslang/glslang/Release/GenericCodeGen.lib",
     ],
     )
     models = [example_module]
 else:
     # linux
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
-    include_dirs=["src/", "src/ncnn/src", "build/temp/src", "VulkanSDK/Include"],
+    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "src/libwebp/src", "build/temp/src", "VulkanSDK/Include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
     extra_objects=[
-        build_temp + "/src/libncnn.a",
+        build_temp + "/ncnntmp/src/libncnn.a",
+        build_temp + "/webptmp/libwebp.a",
+        build_temp + "/webptmp/libwebpmux.a",
+        build_temp + "/webptmp/libwebpdemux.a",
         "VulkanSDK/linux/libvulkan.so",
-        build_temp + "/glslang/SPIRV/libSPIRV.a",
-        build_temp + "/glslang/glslang/libglslang.a",
-        build_temp + "/glslang/glslang/libMachineIndependent.a",
-        build_temp + "/glslang/OGLCompilersDLL/libOGLCompiler.a",
-        build_temp + "/glslang/glslang/OSDependent/Unix/libOSDependent.a",
-        build_temp + "/glslang/glslang/libGenericCodeGen.a",
+        build_temp + "/ncnntmp/glslang/SPIRV/libSPIRV.a",
+        build_temp + "/ncnntmp/glslang/glslang/libglslang.a",
+        build_temp + "/ncnntmp/glslang/glslang/libMachineIndependent.a",
+        build_temp + "/ncnntmp/glslang/OGLCompilersDLL/libOGLCompiler.a",
+        build_temp + "/ncnntmp/glslang/glslang/OSDependent/Unix/libOSDependent.a",
+        build_temp + "/ncnntmp/glslang/glslang/libGenericCodeGen.a",
         
     ],
     libraries=["gomp"],
@@ -192,8 +202,12 @@ class CMakeBuild(build_ext):
                 # CMake 3.12+ only.
                 build_args += ["-j{}".format(self.parallel)]
 
-        if not os.path.exists(build_temp):
-            os.makedirs(build_temp)
+        ncnn_build_temp = build_temp + "ncnntmp/"
+        webp_build_temp = build_temp + "webptmp/"
+        if not os.path.exists(ncnn_build_temp):
+            os.makedirs(ncnn_build_temp)
+        if not os.path.exists(webp_build_temp):
+            os.makedirs(webp_build_temp)
         if Plat == "darwin":
             if "86" not in platform.machine():
                 cmake_args += [
@@ -219,10 +233,17 @@ class CMakeBuild(build_ext):
                 "-DVulkan_INCLUDE_DIR={}".format(os.path.abspath("VulkanSDK/Include")),
             ]
         subprocess.check_call(
-            ["cmake", os.path.abspath("src/ncnn")] + cmake_args, cwd=build_temp
+            ["cmake", os.path.abspath("src/ncnn")] + cmake_args, cwd=ncnn_build_temp, shell=True
         )
         subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=build_temp
+            ["cmake", "--build", "."] + build_args, cwd=ncnn_build_temp, shell=True
+        )
+        
+        subprocess.check_call(
+            ["cmake", os.path.abspath("src/libwebp")] + cmake_args, cwd=webp_build_temp, shell=True
+        )
+        subprocess.check_call(
+            ["cmake", "--build", "."] + build_args, cwd=webp_build_temp, shell=True
         )
         self.force = True
         return super(self.__class__, self).build_extension(ext)
@@ -233,7 +254,7 @@ setuptools.setup(
     author="tonquer",
     license="MIT",
     author_email="tonquer@qq.com",
-    description="A waifu2x tool, use vulkan.",
+    description="A waifu2x python tool, use nihui/waifu2x-ncnn-vulkan",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tonquer/waifu2x-vulkan",
