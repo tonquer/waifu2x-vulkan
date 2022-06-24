@@ -135,6 +135,8 @@ public:
             tasks.pop();
             if (v.fileDate) free(v.fileDate);
             v.fileDate = NULL;
+            if (v.out) free(v.out);
+            v.out = NULL;
             v.clear_in_image();
             v.clear_out_image();
         }
@@ -163,6 +165,8 @@ public:
             {
                 if (v.fileDate) free(v.fileDate);
                 v.fileDate = NULL;
+                if (v.out) free(v.out);
+                v.out = NULL;
                 v.clear_in_image();
                 v.clear_out_image();
             }

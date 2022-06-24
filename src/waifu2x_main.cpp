@@ -20,11 +20,16 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
 
     Tosave.get(v, timeout);
     if (v.id == 0)
+    {
+        waifu2x_set_error("waifu2x already stop");
         return -1;
+    }
 
     if (v.id == -233)
+    {
+        waifu2x_set_error("waifu2x already stop");
         return -1;
-
+    }
     callBack = v.callBack;
     if (v.fileDate) {
         free(v.fileDate);
@@ -87,6 +92,15 @@ void* waifu2x_encode(void* args)
         bool isSuc = to_save(v);
         v.clear_out_image();
 
+        ftime(&v.encodeTick);
+        double decodeTick = (v.decodeTick.time + v.decodeTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 1000.0);
+        double procTick = (v.procTick.time + v.procTick.millitm / 1000.0) - (v.decodeTick.time + v.decodeTick.millitm / 1000.0);
+        double encodeTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.procTick.time + v.procTick.millitm / 1000.0);
+        double allTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 10000.0);
+        v.allTick = allTick;
+        waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, decode:%.2fs, proc:%.2fs, encode:%.2fs, \n",
+            v.callBack, decodeTick, procTick, encodeTick);
+
         if (isSuc)
         {
             Tosave.put(v);
@@ -97,14 +111,7 @@ void* waifu2x_encode(void* args)
             v.isSuc = false; 
             Tosave.put(v);
         }
-        ftime(&v.encodeTick);
-        double decodeTick = (v.decodeTick.time + v.decodeTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 1000.0);
-        double procTick = (v.procTick.time + v.procTick.millitm / 1000.0) - (v.decodeTick.time + v.decodeTick.millitm / 1000.0);
-        double encodeTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.procTick.time + v.procTick.millitm / 1000.0);
-        double allTick = (v.encodeTick.time + v.encodeTick.millitm / 1000.0) - (v.startTick.time + v.startTick.millitm / 10000.0);
-        v.allTick = allTick;
-        waifu2x_printf(stdout, "[waifu2x] end encode imageId :%d, decode:%.2fs, proc:%.2fs, encode:%.2fs, \n",
-            v.callBack, decodeTick, procTick, encodeTick);
+
     }
     return NULL;
 }
@@ -436,7 +443,11 @@ int waifu2x_init_path(const Waifu2xChar* modelPath2)
 
 int waifu2x_init_set(int gpuId2, int cpuNum)
 {
-    if (cpuNum < 0 || cpuNum > 128) { return -1; };
+    if (cpuNum < 0 || cpuNum > 128) 
+    { 
+        waifu2x_set_error("invalid cpu num params");
+        return -1; 
+    };
 
     int jobs_proc = cpuNum;
 
@@ -447,7 +458,7 @@ int waifu2x_init_set(int gpuId2, int cpuNum)
 
     if (gpuId2 < -1 || gpuId2 >= gpu_count)
     {
-        waifu2x_printf(stderr, "[waifu2x] invalid gpu device\n");
+        waifu2x_set_error("invalid gpu device index params");
         return -1;
     }
     if (gpuId2 == -1)
@@ -574,7 +585,10 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
     v.scale = scale;
     v.tileSize = tileSize;
     if ((toH <= 0 || toW <= 0) && scale <= 0)
+    {
+        waifu2x_set_error("invalid scale params");
         return -1;
+    }
     int sts = waifu2x_check_init_model(modelIndex);
     if (sts < 0)
     {
@@ -584,7 +598,7 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
     if (format) v.file = format;
     
     transform(v.file.begin(), v.file.end(), v.file.begin(), ::tolower);
-    if (!v.file.length() == 0 || !v.file.compare("jpg") || !v.file.compare("jpeg") || !v.file.compare("png") || !v.file.compare("webp") || !v.file.compare("jpg") || !v.file.compare("bmp"))
+    if (v.file.length() == 0 || !v.file.compare("jpg") || !v.file.compare("jpeg") || !v.file.compare("png") || !v.file.compare("webp") || !v.file.compare("jpg") || !v.file.compare("bmp"))
     {
         Todecode.put(v);
         return TaskId;

@@ -6,3 +6,4 @@ waifu2x_vulkan.egg-info/
 venv
 test/1.jpg
 test/2.png
+.vscode/settings.json

@@ -57,7 +57,7 @@ print(Plat)
 build_temp = "build/temp/"
 if Plat == "darwin":
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
-    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "build/temp/src", "VulkanSDK/macos/include"],
+    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "src/libwebp/src", "build/temp/src", "VulkanSDK/macos/include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
     extra_objects=[
         build_temp + "/ncnntmp/src/libncnn.a",
@@ -233,17 +233,17 @@ class CMakeBuild(build_ext):
                 "-DVulkan_INCLUDE_DIR={}".format(os.path.abspath("VulkanSDK/Include")),
             ]
         subprocess.check_call(
-            ["cmake", os.path.abspath("src/ncnn")] + cmake_args, cwd=ncnn_build_temp, shell=True
+            ["cmake", os.path.abspath("src/ncnn")] + cmake_args, cwd=ncnn_build_temp
         )
         subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=ncnn_build_temp, shell=True
+            ["cmake", "--build", "."] + build_args, cwd=ncnn_build_temp
         )
         
         subprocess.check_call(
-            ["cmake", os.path.abspath("src/libwebp")] + cmake_args, cwd=webp_build_temp, shell=True
+            ["cmake", os.path.abspath("src/libwebp")] + cmake_args, cwd=webp_build_temp
         )
         subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=webp_build_temp, shell=True
+            ["cmake", "--build", "."] + build_args, cwd=webp_build_temp
         )
         self.force = True
         return super(self.__class__, self).build_extension(ext)

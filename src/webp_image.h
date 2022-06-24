@@ -61,6 +61,9 @@ bool webp_load_ani(Task& v)
     WebPAnimInfo anim_info;
     WebPAnimDecoderOptions opt;
     const int kNumChannels = 4;
+    int webp_status = 0;
+    WebPDecoderConfig decoder_config;
+    int duration, timestamp;
 
     memset(&opt, 0, sizeof(opt));
     const WebPData webp_data = {(unsigned char*) v.fileDate, v.fileSize };
@@ -73,13 +76,12 @@ bool webp_load_ani(Task& v)
         goto End;
     }
     // Main object storing the configuration for advanced decoding
-    WebPDecoderConfig decoder_config;
     // Initialize the configuration as empty
     // This function must always be called first, unless WebPGetFeatures() is to be called
     if (!WebPInitDecoderConfig(&decoder_config)) {
         goto End;
     }
-    int webp_status = WebPGetFeatures(webp_data.bytes, webp_data.size, &decoder_config.input);
+    webp_status = WebPGetFeatures(webp_data.bytes, webp_data.size, &decoder_config.input);
     if (webp_status != VP8_STATUS_OK) {
         goto End;
     }
@@ -89,16 +91,14 @@ bool webp_load_ani(Task& v)
     }
     while (WebPAnimDecoderHasMoreFrames(dec)) {
         //DecodedFrame* curr_frame;
-        uint8_t* curr_rgba;
         uint8_t* frame_rgba;
-        int timestamp;
 
         if (!WebPAnimDecoderGetNext(dec, &frame_rgba, &timestamp)) {
             fprintf(stderr, "Error decoding frame #%u\n", frame_index);
             goto End;
         }
         // assert(frame_index < anim_info.frame_count);
-        int duration = timestamp - prev_frame_timestamp;
+        duration = timestamp - prev_frame_timestamp;
         
         ncnn::Mat* inimage = new ncnn::Mat();
         inimage->create(anim_info.canvas_width, anim_info.canvas_height, (size_t)kNumChannels, kNumChannels);
@@ -133,19 +133,23 @@ bool webp_save_ani(Task &v)
     frame.id = WEBP_CHUNK_ANMF;
     frame.dispose_method = WEBP_MUX_DISPOSE_NONE;
     frame.blend_method = WEBP_MUX_NO_BLEND;
+    
+    uint8_t* outb = 0;
+    size_t size = 0;
+    WebPMuxAnimParams params;
+    WebPData outputData;
+    std::list<int>::iterator j;
+    std::list<ncnn::Mat*>::iterator i;
     WebPMux* mux = WebPMuxNew();
     if (!mux) {
         goto End;
     }
-    std::list<ncnn::Mat *>::iterator i = v.outImage.begin();
-    std::list<int>::iterator j = v.inFrame.begin();
-    for (; i != v.outImage.end(); i++, j++)
+    for (i = v.outImage.begin(), j = v.inFrame.begin(); i != v.outImage.end(); i++, j++)
     {
         ncnn::Mat & inimage = **i;
         int duration= *j;
 
-        uint8_t* outb = 0;
-        size_t size = WebPEncodeLosslessRGBA((unsigned char*)inimage.data, inimage.w, inimage.h, inimage.w * inimage.elemsize, &outb);
+        size = WebPEncodeLosslessRGBA((unsigned char*)inimage.data, inimage.w, inimage.h, inimage.w * inimage.elemsize, &outb);
 
         const WebPData webp_data = { outb, size };
         frame.duration = duration;
@@ -159,11 +163,9 @@ bool webp_save_ani(Task &v)
     err = WebPMuxSetCanvasSize(mux, v.toW, v.toH);
     if (err != WEBP_MUX_OK) goto End;
 
-    WebPMuxAnimParams params;
     params.bgcolor = 0;
     params.loop_count = 0;
     WebPMuxSetAnimationParams(mux, &params);
-    WebPData outputData;
     err = WebPMuxAssemble(mux, &outputData);
     if (err != WEBP_MUX_OK) {
         goto End;
@@ -183,7 +185,6 @@ bool webp_save(Task &v)
 
     size_t length = 0;
     unsigned char* output = 0;
-    bool success;
     ncnn::Mat& outimage = **v.outImage.begin();
     
     if (outimage.elemsize == 3)
