@@ -208,6 +208,29 @@ class CMakeBuild(build_ext):
             os.makedirs(ncnn_build_temp)
         if not os.path.exists(webp_build_temp):
             os.makedirs(webp_build_temp)
+        
+        webp_args = [
+            "-DWEBP_ENABLE_SIMD=ON",
+            "-DWEBP_BUILD_ANIM_UTILS=OFF",
+            "-DWEBP_BUILD_CWEBP=OFF",
+            "-DWEBP_BUILD_DWEBP=OFF",
+            "-DWEBP_BUILD_GIF2WEBP=OFF",
+            "-DWEBP_BUILD_IMG2WEBP=OFF",
+            "-DWEBP_BUILD_VWEBP=OFF",
+            "-DWEBP_BUILD_WEBPINFO=OFF",
+            "-DWEBP_BUILD_WEBPMUX=OFF",
+            "-DWEBP_BUILD_EXTRAS=OFF",
+            "-DWEBP_BUILD_WEBP_JS=OFF",
+            "-DWEBP_NEAR_LOSSLESS=OFF",
+            "-DWEBP_ENABLE_SWAP_16BIT_CSP=OFF",
+        ]
+        subprocess.check_call(
+            ["cmake", os.path.abspath("src/libwebp")] + webp_args, cwd=webp_build_temp
+        )
+        subprocess.check_call(
+            ["cmake", "--build", "."] + build_args, cwd=webp_build_temp
+        )
+
         if Plat == "darwin":
             if "86" not in platform.machine():
                 cmake_args += [
@@ -238,13 +261,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=ncnn_build_temp
         )
-        
-        subprocess.check_call(
-            ["cmake", os.path.abspath("src/libwebp")] + cmake_args, cwd=webp_build_temp
-        )
-        subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=webp_build_temp
-        )
+
         self.force = True
         return super(self.__class__, self).build_extension(ext)
 
