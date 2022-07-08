@@ -10,8 +10,8 @@ long_description = \
 # waifu2x-ncnn-vulkan-python
 - This is modified [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan), Export pyd and so files to Python
 - Support Linux, Windows, MacOs
-- Support import JPG, PNG, BMP, GIF, WEBP, Animated WEBP 
-- Support export JPG, PNG, BMP, WEBP, Animated WEBP
+- Support import JPG, PNG, BMP, GIF, WEBP, Animated WEBP, APNG
+- Support export JPG, PNG, BMP, WEBP, Animated WEBP, APNG
 - Support vulkan gpu and cpu
 
 # Install
@@ -48,7 +48,7 @@ print("init set, code:{}".format(str(sts)))
 ```
 
 """
-Version = "1.1.2"
+Version = "1.1.3"
 
 Plat = sys.platform
 
@@ -57,13 +57,15 @@ print(Plat)
 build_temp = "build/temp/"
 if Plat == "darwin":
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
-    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "src/libwebp/src", "build/temp/src", "VulkanSDK/macos/include"],
+    include_dirs=["build/temp/ncnntmp/src", "build/temp/pngtmp/", "build/temp/pngtmp/zlib", "src/ncnn/src", "src/libwebp/src",  "src/libpng", "src/libpng/zlib", "build/temp/src", "VulkanSDK/macos/include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
     extra_objects=[
         build_temp + "/ncnntmp/src/libncnn.a",
         build_temp + "/webptmp/libwebp.a",
         build_temp + "/webptmp/libwebpmux.a",
         build_temp + "/webptmp/libwebpdemux.a",
+        build_temp + "/pngtmp/libpng.a",
+        build_temp + "/pngtmp/zlib/libz.a",
         "VulkanSDK/macos/libMoltenVK.a",
         build_temp + "/ncnntmp/glslang/SPIRV/libSPIRV.a",
         build_temp + "/ncnntmp/glslang/glslang/libglslang.a",
@@ -84,7 +86,7 @@ if Plat == "darwin":
     models = [example_module]
 elif Plat in ["win32", "win64"]:
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
-    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "src/libwebp/src", "build/temp/src", "VulkanSDK/Include"],
+    include_dirs=["build/temp/ncnntmp/src", "build/temp/pngtmp/", "build/temp/pngtmp/zlib", "src/ncnn/src", "src/libwebp/src", "src/libpng", "src/libpng/zlib", "build/temp/src", "VulkanSDK/Include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
     define_macros=[("WIN32",1), ("NOMINMAX",1), ("NDEBUG",1)],
     extra_objects=[
@@ -92,6 +94,8 @@ elif Plat in ["win32", "win64"]:
         build_temp + "/webptmp/Release/webp.lib",
         build_temp + "/webptmp/Release/webpmux.lib",
         build_temp + "/webptmp/Release/webpdemux.lib",
+        build_temp + "/pngtmp/Release/libpng16_static.lib",
+        build_temp + "/pngtmp/zlib/Release/zlibstatic.lib",
         "VulkanSDK/windows/vulkan-1.lib",
         build_temp + "/ncnntmp/glslang/SPIRV/Release/SPIRV.lib",
         build_temp + "/ncnntmp/glslang/glslang/Release/glslang.lib",
@@ -105,13 +109,15 @@ elif Plat in ["win32", "win64"]:
 else:
     # linux
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
-    include_dirs=["build/temp/ncnntmp/src", "src/ncnn/src", "src/libwebp/src", "build/temp/src", "VulkanSDK/Include"],
+    include_dirs=["build/temp/ncnntmp/src", "build/temp/pngtmp/", "build/temp/pngtmp/zlib", "src/ncnn/src", "src/libwebp/src",  "src/libpng", "src/libpng/zlib", "build/temp/src", "VulkanSDK/Include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
     extra_objects=[
         build_temp + "/ncnntmp/src/libncnn.a",
         build_temp + "/webptmp/libwebp.a",
         build_temp + "/webptmp/libwebpmux.a",
         build_temp + "/webptmp/libwebpdemux.a",
+        build_temp + "/pngtmp/libpng.a",
+        build_temp + "/pngtmp/zlib/libz.a",
         "VulkanSDK/linux/libvulkan.so",
         build_temp + "/ncnntmp/glslang/SPIRV/libSPIRV.a",
         build_temp + "/ncnntmp/glslang/glslang/libglslang.a",
@@ -204,11 +210,29 @@ class CMakeBuild(build_ext):
 
         ncnn_build_temp = build_temp + "ncnntmp/"
         webp_build_temp = build_temp + "webptmp/"
+        png_build_temp = build_temp + "pngtmp/"
         if not os.path.exists(ncnn_build_temp):
             os.makedirs(ncnn_build_temp)
         if not os.path.exists(webp_build_temp):
             os.makedirs(webp_build_temp)
-        
+        if not os.path.exists(png_build_temp):
+            os.makedirs(png_build_temp)
+
+        # build libpng
+        png_args = [
+            "-DPNG_STATIC=ON",
+            "-DPNG_SHARED=OFF",
+            "-DPNG_TESTS=OFF",
+            "-DPNG_EXECUTABLES=OFF",
+        ]
+        subprocess.check_call(
+            ["cmake", os.path.abspath("src/libpng")] + png_args, cwd=png_build_temp
+        )
+        subprocess.check_call(
+            ["cmake", "--build", "."] + build_args, cwd=png_build_temp
+        )
+
+        # build webp
         webp_args = [
             "-DWEBP_ENABLE_SIMD=ON",
             "-DWEBP_BUILD_ANIM_UTILS=OFF",
@@ -231,6 +255,7 @@ class CMakeBuild(build_ext):
             ["cmake", "--build", "."] + build_args, cwd=webp_build_temp
         )
 
+        # build ncnn
         if Plat == "darwin":
             if "86" not in platform.machine():
                 cmake_args += [

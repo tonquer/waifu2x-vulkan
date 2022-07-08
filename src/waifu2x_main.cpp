@@ -10,11 +10,17 @@ TaskQueue Toproc;
 TaskQueue Toencode;
 TaskQueue Tosave;
 
+
+static int GpuId;
+static int TotalJobsProc = 0;
+static int NumThreads = 1;
+static int TaskId = 1;
+
 bool IsDebug = false;
 
 Waifu2xChar ModelPath[1024] = {0};
 
-int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout = 10)
+int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, char * format, unsigned int timeout = 10)
 {
     Task v;
 
@@ -43,20 +49,19 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     outSize = v.outSize;
 
     v.out = NULL;
-
+    strcpy(format, v.file.c_str());
     tick = v.allTick;
     return v.id;
 }
 void* waifu2x_decode(void* args)
 {
-    const Waifu2x* waifu2x;
     for (;;)
     {
         Task v;
         Todecode.get(v);
         if (v.id == -233)
             break;
-        if (v.modelIndex >= Waifu2xList.size())
+        if (v.modelIndex >= (int)Waifu2xList.size())
         {
             v.isSuc = false; Tosave.put(v); continue;
         }
@@ -73,7 +78,6 @@ void* waifu2x_decode(void* args)
         }
         else
         {
-            v.err = stbi_failure_reason();
             v.isSuc = false;
             Tosave.put(v);
         }
@@ -82,7 +86,6 @@ void* waifu2x_decode(void* args)
 }
 void* waifu2x_encode(void* args)
 {
-    const Waifu2x* waifu2x;
     for (;;)
     {
         Task v;
@@ -107,7 +110,11 @@ void* waifu2x_encode(void* args)
         }
         else
         {
-            v.err = stbi_failure_reason();
+            const char* err = stbi_failure_reason();
+            if (err)
+            {
+                v.err = err;
+            }
             v.isSuc = false; 
             Tosave.put(v);
         }
@@ -203,7 +210,7 @@ void* waifu2x_proc(void* args)
 }
 void* waifu2x_to_stop(void* args)
 {
-    for (int i = 0; i < OtherThreads.size(); i++)
+    for (int i = 0; i < (int)OtherThreads.size(); i++)
     {
         OtherThreads[i]->join();
         delete OtherThreads[i];
@@ -475,7 +482,6 @@ int waifu2x_init_set(int gpuId2, int cpuNum)
         NumThreads = 1;
     }
     
-    int index = 0;
     std::string models[3] = { "models-cunet", "models-upconv_7_anime_style_art_rgb", "models-upconv_7_photo" };
     for (int i = 0; i < 3; i++)
     {
@@ -515,7 +521,7 @@ int waifu2x_init_set(int gpuId2, int cpuNum)
 
 int waifu2x_check_init_model(int initModel)
 {
-    if (initModel < 0 || initModel >= Waifu2xList.size())
+    if (initModel < 0 || initModel >= (int)Waifu2xList.size())
     {
         return Waifu2xError::NotModel;
     }
@@ -598,7 +604,7 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
     if (format) v.file = format;
     
     transform(v.file.begin(), v.file.end(), v.file.begin(), ::tolower);
-    if (v.file.length() == 0 || !v.file.compare("jpg") || !v.file.compare("jpeg") || !v.file.compare("png") || !v.file.compare("webp") || !v.file.compare("jpg") || !v.file.compare("bmp"))
+    if (v.file.length() == 0 || !v.file.compare("jpg") || !v.file.compare("jpeg") || !v.file.compare("png") || !v.file.compare("webp") || !v.file.compare("jpg") || !v.file.compare("bmp") || !v.file.compare("apng"))
     {
         Todecode.put(v);
         return TaskId;

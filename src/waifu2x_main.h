@@ -35,7 +35,8 @@ public:
     int id = 0;
 
     void* fileDate;
-    unsigned long fileSize;
+    int fileSize;
+    int allFileSize=0;
     std::string file;
     std::string err;
     bool isSuc = true;
@@ -60,6 +61,7 @@ public:
 
     void* out = 0;
     int outSize = 0;
+    int allOutSize = 0;
 
     void clear_in_image()
     {
@@ -182,7 +184,7 @@ private:
 };
 
 int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale, int);
-int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, unsigned int timeout);
+int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, char *, unsigned int timeout);
 int waifu2x_init();
 int waifu2x_init_set(int gpuId2, int threadNum);
 int waifu2x_init_path(const Waifu2xChar*);
@@ -197,14 +199,10 @@ int waifu2x_remove(std::set<int>&);
 void waifu2x_set_error(const char* err);
 std::string waifu2x_get_error();
 
-static int GpuId;
-static int TotalJobsProc = 0;
-static int NumThreads = 1;
 static std::string ErrMsg;
 static std::vector<ncnn::Thread*> ProcThreads;
 static std::vector<ncnn::Thread*> OtherThreads;
 static std::vector<Waifu2x*> Waifu2xList;
-static int TaskId = 1;
 
 class WriteData
 {

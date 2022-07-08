@@ -217,8 +217,35 @@ if(NOT USE_SYSTEM_WEBP)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libwebp/src)
 endif()
 
+if(USE_SYSTEM_LIBPNG)
+    set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+    find_package(libpng)
+    if(NOT TARGET libpng)
+        message(WARNING "libpng target not found! USE_SYSTEM_LIBPNG will be turned off.")
+        set(USE_SYSTEM_LIBPNG OFF)
+    endif()
+endif()
+
+if(NOT USE_SYSTEM_LIBPNG)
+    # build libpng library
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libpng/CMakeLists.txt")
+        message(FATAL_ERROR "The submodules were not downloaded! Please update submodules with \"git submodule update --init --recursive\" and try again.")
+    endif()
+
+    option(PNG_STATIC "" ON)
+    option(PNG_SHARED "" OFF)
+    option(PNG_TESTS "" OFF)
+    option(PNG_EXECUTABLES "" OFF)
+    add_subdirectory(libpng)
+
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libpng)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/libpng)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libpng/zlib)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/libpng/zlib)
+endif()
+
 add_library(waifu2x_vulkan SHARED waifu2x_main.cpp waifu2x.cpp waifu2x_py.cpp )
-set(WAIFU2X_LINK_LIBRARIES ncnn webp webpmux webpdemux ${Vulkan_LIBRARY} ${PYTHON_LIBRARIES})
+set(WAIFU2X_LINK_LIBRARIES ncnn webp webpmux webpdemux png_static ${Vulkan_LIBRARY} ${PYTHON_LIBRARIES})
 
 if(USE_STATIC_MOLTENVK)
     find_library(CoreFoundation NAMES CoreFoundation)

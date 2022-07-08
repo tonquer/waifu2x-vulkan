@@ -48,13 +48,14 @@ bool webp_load(Task &v)
         return false;
     }
     v.inImage.push_back(inimage);
+    v.inFrame.push_back(100);
+    if (v.file.length() == 0) v.file = "webp";
     return true;
 }
 
 bool webp_load_ani(Task& v)
 {
     bool ok = false;
-    int dump_ok = 1;
     uint32_t frame_index = 0;
     int prev_frame_timestamp = 0;
     WebPAnimDecoder* dec;
@@ -66,7 +67,7 @@ bool webp_load_ani(Task& v)
     int duration, timestamp;
 
     memset(&opt, 0, sizeof(opt));
-    const WebPData webp_data = {(unsigned char*) v.fileDate, v.fileSize };
+    const WebPData webp_data = {(unsigned char*) v.fileDate, (size_t)v.fileSize };
 
     opt.color_mode = MODE_RGBA;
     opt.use_threads = 0;
@@ -111,20 +112,39 @@ bool webp_load_ani(Task& v)
         ++frame_index;
         prev_frame_timestamp = timestamp;
     }
+    if (v.file.length() == 0) v.file = "webp";
     ok = true;
 End:
     WebPAnimDecoderDelete(dec);
     return ok;
 }
 
-
+//bool webp_save_ani2(Task& v)
+//{
+//    const char* output = NULL;
+//    WebPAnimEncoder* enc = NULL;
+//    int verbose = 0;
+//    int pic_num = 0;
+//    int duration = 100;
+//    int timestamp_ms = 0;
+//    int loop_count = 0;
+//    int width = 0, height = 0;
+//    WebPAnimEncoderOptions anim_config;
+//    WebPConfig config;
+//    WebPPicture pic;
+//    WebPData webp_data;
+//    int c;
+//    int have_input = 0;
+//    CommandLineArguments cmd_args;
+//    int ok;
+//
+//    config.lossless = 1;
+//    enc = WebPAnimEncoderNew(width, height, &anim_config);
+//    ok = WebPAnimEncoderAdd(enc, &pic, timestamp_ms, &config);
+//}
 bool webp_save_ani(Task &v)
 {
     bool ok = false;
-    int dump_ok = 1;
-    uint32_t frame_index = 0;
-    int prev_frame_timestamp = 0;
-    const int kNumChannels = 4;
     WebPMuxError err;
 
     WebPMuxFrameInfo frame;
@@ -149,7 +169,7 @@ bool webp_save_ani(Task &v)
         ncnn::Mat & inimage = **i;
         int duration= *j;
 
-        size = WebPEncodeLosslessRGBA((unsigned char*)inimage.data, inimage.w, inimage.h, inimage.w * inimage.elemsize, &outb);
+        size = WebPEncodeLosslessRGBA((unsigned char*)inimage.data, inimage.w, inimage.h, inimage.w * (int)inimage.elemsize, &outb);
 
         const WebPData webp_data = { outb, size };
         frame.duration = duration;
@@ -172,7 +192,7 @@ bool webp_save_ani(Task &v)
     }
 
     v.out = (void *)outputData.bytes;
-    v.outSize = outputData.size;
+    v.outSize = (int)outputData.size;
     ok = true;
 End:
     WebPMuxDelete(mux);
@@ -189,11 +209,11 @@ bool webp_save(Task &v)
     
     if (outimage.elemsize == 3)
     {
-        length = WebPEncodeLosslessRGB((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * outimage.elemsize, &output);
+        length = WebPEncodeLosslessRGB((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * (int)outimage.elemsize, &output);
     }
     else if (outimage.elemsize == 4)
     {
-        length = WebPEncodeLosslessRGBA((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * outimage.elemsize, &output);
+        length = WebPEncodeLosslessRGBA((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * (int)outimage.elemsize, &output);
     }
     else
     {
@@ -204,7 +224,7 @@ bool webp_save(Task &v)
         goto RETURN;
 
     v.out = (void*)output;
-    v.outSize = length;
+    v.outSize = (int)length;
     ok = true;
     
 RETURN:

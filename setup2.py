@@ -9,8 +9,8 @@ long_description = \
 # waifu2x-ncnn-vulkan-python
 - This is modified [waifu2x-ncnn-vulkan](https://github.com/nihui/waifu2x-ncnn-vulkan), Export pyd and so files to Python
 - Support Linux, Windows, MacOs
-- Support import JPG, PNG, BMP, GIF, WEBP, Animated WEBP 
-- Support export JPG, PNG, BMP, WEBP, Animated WEBP
+- Support import JPG, PNG, BMP, GIF, WEBP, Animated WEBP, APNG
+- Support export JPG, PNG, BMP, WEBP, Animated WEBP, APNG
 - Support vulkan gpu and cpu
 
 # Install
@@ -47,7 +47,7 @@ print("init set, code:{}".format(str(sts)))
 ```
 
 """
-Version = "1.1.2"
+Version = "1.1.3"
 
 Plat = sys.platform
 

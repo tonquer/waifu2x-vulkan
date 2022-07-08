@@ -241,7 +241,8 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     if (!IsInitSet)
     {
-        return PyLong_FromLong(0);
+        waifu2x_set_error("waifu2x not init");
+        return PyLong_FromLong(-1);
     }
     const char* b = NULL;
     unsigned int size;
@@ -311,8 +312,6 @@ waifu2x_py_get_gpu_core(PyObject* self, PyObject* args, PyObject* kwargs)
         return PyLong_FromLong(0);
     }
     Py_ssize_t gpuId = 0;
-    double tick = 0;
-    int callBack;
     char* kwarg_names[] = { (char*)"gpuId", NULL };
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwarg_names, &gpuId))
         Py_RETURN_NONE;
@@ -341,7 +340,11 @@ waifu2x_py_get_cpu_core(PyObject* self, PyObject* args)
 static PyObject*
 waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
 {
-    if (!IsInitSet) Py_RETURN_NONE;
+    if (!IsInitSet) 
+    { 
+        waifu2x_set_error("waifu2x not init");
+        Py_RETURN_NONE; 
+    }
     void* out = NULL;
     unsigned long outSize = 0;
     Py_ssize_t block = 0;
@@ -352,13 +355,15 @@ waifu2x_py_load(PyObject* self, PyObject* args, PyObject* kwargs)
         Py_RETURN_NONE;
     PyThreadState* save;
     save = PyEval_SaveThread();
-    int sts = waifu2x_getData(out, outSize, tick, callBack, block);
+    char format[5] = "";
+
+    int sts = waifu2x_getData(out, outSize, tick, callBack, format, block);
     PyEval_RestoreThread(save);
     if (sts <= 0)
     {
         Py_RETURN_NONE;
     }
-    PyObject* data = Py_BuildValue("y#iid", (char*)out, outSize, sts, callBack, tick);
+    PyObject* data = Py_BuildValue("y#sid", (char*)out, outSize, format, callBack, tick);
     if (out) free(out);
     return data;
 }

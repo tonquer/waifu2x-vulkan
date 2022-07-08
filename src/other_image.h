@@ -20,6 +20,7 @@
 #include "stb_image_resize.h"
 #include "waifu2x_main.h"
 #include "webp_image.h"
+#include "apng_image.h"
 
 bool bmp_save(Task &v)
 {
@@ -117,6 +118,10 @@ bool to_save(Task &v)
         else
             return webp_save_ani(v);
     }
+    else if (!v.file.compare("apng"))
+    {
+        return save_apng(v);
+    }
     return false;
 }
 
@@ -189,6 +194,7 @@ bool stbi_xload(Task &v)
         inimage->create(x, y, (size_t)c, c);
         memcpy(inimage->data, pixeldata, x * y * c);
         v.inImage.push_back(inimage);
+        v.inFrame.push_back(100);
     }
 End:
     if (v.file.length() == 0) v.file = format;
@@ -214,9 +220,21 @@ bool to_load(Task& v)
     { 
         isSuc = webp_load_ani(v); 
     }
+    if (!isSuc)
+    {
+        isSuc = load_apng(v);
+    }
     if(!isSuc)
     {
         isSuc = stbi_xload(v);
+        if (!isSuc) 
+        {
+            const char* err = stbi_failure_reason();
+            if (err)
+            {
+                v.err = err;
+            }
+        }
     }
     return isSuc;
 }
