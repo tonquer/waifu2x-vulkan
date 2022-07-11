@@ -44,7 +44,7 @@ print("init set, code:{}".format(str(sts)))
 # waifu2x.add(data=imgData, modelIndex=waifu2x_vulkan.MODEL_ANIME_STYLE_ART_RGB_NOISE0, backId=0, format="webp", width=1000, high=1000)
 
 # load picture...
-# newData, status, backId, tick = waifu2x.load(0)
+# newData, format, backId, tick = waifu2x.load(0)
 ```
 
 """

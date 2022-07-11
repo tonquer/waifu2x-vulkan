@@ -56,13 +56,8 @@ if __name__ == "__main__":
     # CPU模式默认tileSize=800，如果内存小，请调低改值
     # start convert, by setting width and high
     # CPU Model default tileSize=800, if the memory is too small, Please turn down
-    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, 900, 800, "png", tileSize=200) > 0:
+    if waifu2x.add(data, waifu2x.MODEL_CUNET_NOISE3, backId, 900, 800, tileSize=200, format="webp") > 0:
         count += 1
-    
-    saveName = {
-        1 : "1.jpg",
-        2 : "2.png"
-    }
 
     while count > 0:
         time.sleep(1)
@@ -73,8 +68,8 @@ if __name__ == "__main__":
         if not info:
             break 
         count -= 1
-        newData, status, backId, tick = info
-        f = open(saveName.get(backId), "wb+")
+        newData, foramt, backId, tick = info
+        f = open(str(backId) + "." + foramt, "wb+")
         f.write(newData)
         f.close()
     
