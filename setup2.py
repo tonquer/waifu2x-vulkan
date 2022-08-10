@@ -47,7 +47,7 @@ print("init set, code:{}".format(str(sts)))
 ```
 
 """
-Version = "1.1.3"
+Version = "1.1.4"
 
 Plat = sys.platform
 
