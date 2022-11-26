@@ -351,7 +351,8 @@ bool load_apng(Task& v)
         free(p_image);
     }
     ok = true;
-    if (v.file.length() == 0) v.file = "apng";
+    if (v.save_format.length() == 0) v.save_format = "apng";
+    v.load_format = "apng";
 End:
 
     if (png_ptr)

@@ -103,6 +103,19 @@ waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs)
     return PyLong_FromLong(sts);
 }
 
+static PyObject*
+waifu2x_py_set_webp_quality(PyObject* self, PyObject* args)
+{
+    int quality=0;
+    if (!PyArg_ParseTuple(args, "i", &quality))
+        PyLong_FromLong(-1);
+    if (quality <= 0 || quality > 100)
+    {
+        return PyLong_FromLong(-1);
+    }
+    waifu2x_set_webp_quality(quality);
+    return PyLong_FromLong(0);
+}
 
 static PyObject*
 waifu2x_py_clear(PyObject* self, PyObject* args)

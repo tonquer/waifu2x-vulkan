@@ -37,7 +37,8 @@ public:
     void* fileDate;
     int fileSize;
     int allFileSize=0;
-    std::string file;
+    std::string load_format;
+    std::string save_format;
     std::string err;
     bool isSuc = true;
 
@@ -47,6 +48,7 @@ public:
     unsigned long toH;
     float scale = 2;
     int tileSize = 0;
+    int webp_quality = 90;
 
     struct timeb startTick;
     struct timeb decodeTick;
@@ -192,6 +194,7 @@ int waifu2x_get_path_size();
 int waifu2x_stop();
 int waifu2x_clear();
 int waifu2x_set_debug(bool);
+int waifu2x_set_webp_quality(int);
 int waifu2x_printf(void* p, const char* fmt, ...);
 int waifu2x_printf(void* p, const wchar_t* fmt, ...);
 int waifu2x_remove_wait(std::set<int>&);

@@ -15,6 +15,9 @@ static PyObject*
 waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
+waifu2x_py_set_webp_quality(PyObject* self, PyObject* args);
+
+static PyObject*
 waifu2x_py_clear (PyObject* self, PyObject* args);
 
 static PyObject*
@@ -58,6 +61,8 @@ static PyMethodDef SpamMethods[] = {
      "Init ncnn\n"},
     {"initSet",  (PyCFunction)waifu2x_py_init_set, METH_VARARGS | METH_KEYWORDS,
      "Init setting\ngpuId: getGpuInfo get index \ncpuNum(Option): CPU model use CPU num, default cpu num / 2 \n"},
+    {"setWebpQuality",  (PyCFunction)waifu2x_py_set_webp_quality, METH_VARARGS,
+     "set webp quality \ncan go from 0 (smaller output, lower quality) to 100 (best quality,larger output) \n"},
     {"add",  (PyCFunction)waifu2x_py_add, METH_VARARGS | METH_KEYWORDS,
      "Add task, \ndata: img bytes \nmodelIndex: Model enum \nbackId: call back id \nformat(Option): export fmt, default import fmt \nimport support bmp png jpg gif webp \nexport support bmp png jpg webp \nwidth(Option): export set width \nhigh(Option): export set high \nscale(Option): export set width and high \ntileSize(Option): default Auto\n"},
     {"getGpuInfo",  (PyCFunction)waifu2x_py_get_info, METH_VARARGS,
@@ -98,5 +103,5 @@ static struct PyModuleDef spammodule = {
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "1.1.4";
+static const char* Version = "1.1.5";
 #endif 

@@ -15,6 +15,7 @@ static int GpuId;
 static int TotalJobsProc = 0;
 static int NumThreads = 1;
 static int TaskId = 1;
+static int WebpQuality = 90;
 
 bool IsDebug = false;
 
@@ -49,7 +50,7 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     outSize = v.outSize;
 
     v.out = NULL;
-    strcpy(format, v.file.c_str());
+    strcpy(format, v.save_format.c_str());
     tick = v.allTick;
     return v.id;
 }
@@ -141,7 +142,7 @@ void* waifu2x_proc(void* args)
             name = "cpu";
 
         waifu2x_printf(stdout, "[waifu2x] start encode imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, tta:%d, tileSize:%d\n",
-            v.callBack, name, v.file.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, waifu2x->tta_mode, v.tileSize);
+            v.callBack, name, v.save_format.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, waifu2x->tta_mode, v.tileSize);
         int scale_run_count = 1;
         int frame = 0;
         for (std::list<ncnn::Mat *>::iterator in = v.inImage.begin(); in != v.inImage.end(); in++)
@@ -590,6 +591,7 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
     v.toW = toW;
     v.scale = scale;
     v.tileSize = tileSize;
+    v.webp_quality = WebpQuality;
     if ((toH <= 0 || toW <= 0) && scale <= 0)
     {
         waifu2x_set_error("invalid scale params");
@@ -601,10 +603,10 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
         waifu2x_set_error("invalid model index");
         return sts;
     }
-    if (format) v.file = format;
+    if (format) v.save_format = format;
     
-    transform(v.file.begin(), v.file.end(), v.file.begin(), ::tolower);
-    if (v.file.length() == 0 || !v.file.compare("jpg") || !v.file.compare("jpeg") || !v.file.compare("png") || !v.file.compare("webp") || !v.file.compare("jpg") || !v.file.compare("bmp") || !v.file.compare("apng"))
+    transform(v.save_format.begin(), v.save_format.end(), v.save_format.begin(), ::tolower);
+    if (v.save_format.length() == 0 || !v.save_format.compare("jpg") || !v.save_format.compare("jpeg") || !v.save_format.compare("png") || !v.save_format.compare("webp") || !v.save_format.compare("jpg") || !v.save_format.compare("bmp") || !v.save_format.compare("apng"))
     {
         Todecode.put(v);
         return TaskId;
@@ -647,6 +649,12 @@ int waifu2x_clear()
 int waifu2x_set_debug(bool isdebug)
 {
     IsDebug = isdebug;
+    return 0;
+}
+
+int waifu2x_set_webp_quality(int webp_quality)
+{
+    WebpQuality = webp_quality;
     return 0;
 }
 

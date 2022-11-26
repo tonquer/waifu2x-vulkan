@@ -49,7 +49,8 @@ bool webp_load(Task &v)
     }
     v.inImage.push_back(inimage);
     v.inFrame.push_back(100);
-    if (v.file.length() == 0) v.file = "webp";
+    if (v.save_format.length() == 0) v.save_format = "webp";
+    v.load_format = "webp";
     return true;
 }
 
@@ -112,7 +113,8 @@ bool webp_load_ani(Task& v)
         ++frame_index;
         prev_frame_timestamp = timestamp;
     }
-    if (v.file.length() == 0) v.file = "webp";
+    if (v.save_format.length() == 0) v.save_format = "webp";
+    v.load_format = "webp";
     ok = true;
 End:
     WebPAnimDecoderDelete(dec);
@@ -169,7 +171,7 @@ bool webp_save_ani(Task &v)
         ncnn::Mat & inimage = **i;
         int duration= *j;
 
-        size = WebPEncodeLosslessRGBA((unsigned char*)inimage.data, inimage.w, inimage.h, inimage.w * (int)inimage.elemsize, &outb);
+        size = WebPEncodeRGBA((unsigned char*)inimage.data, inimage.w, inimage.h, inimage.w * (int)inimage.elemsize, v.webp_quality, &outb);
 
         const WebPData webp_data = { outb, size };
         frame.duration = duration;
@@ -209,11 +211,11 @@ bool webp_save(Task &v)
     
     if (outimage.elemsize == 3)
     {
-        length = WebPEncodeLosslessRGB((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * (int)outimage.elemsize, &output);
+        length = WebPEncodeRGB((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * (int)outimage.elemsize, v.webp_quality, &output);
     }
     else if (outimage.elemsize == 4)
     {
-        length = WebPEncodeLosslessRGBA((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * (int)outimage.elemsize, &output);
+        length = WebPEncodeRGBA((unsigned char*)outimage.data, outimage.w, outimage.h, outimage.w * (int)outimage.elemsize, v.webp_quality, &output);
     }
     else
     {

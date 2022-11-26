@@ -99,26 +99,26 @@ bool jpg_save(Task& v)
 
 bool to_save(Task &v)
 {
-    if (!v.file.compare("bmp"))
+    if (!v.save_format.compare("bmp"))
     {
         return bmp_save(v);
     }
-    else if (!v.file.compare("png"))
+    else if (!v.save_format.compare("png"))
     {
         return png_save(v);
     }
-    else if (!v.file.compare("jpg") || !v.file.compare("jpeg"))
+    else if (!v.save_format.compare("jpg") || !v.save_format.compare("jpeg"))
     {
         return jpg_save(v);
     }
-    else if (!v.file.compare("webp") || !v.file.compare("gif"))
+    else if (!v.save_format.compare("webp"))
     {
         if (v.outImage.size() <= 1)
             return webp_save(v);
         else
             return webp_save_ani(v);
     }
-    else if (!v.file.compare("apng"))
+    else if (!v.save_format.compare("apng"))
     {
         return save_apng(v);
     }
@@ -197,7 +197,10 @@ bool stbi_xload(Task &v)
         v.inFrame.push_back(100);
     }
 End:
-    if (v.file.length() == 0) v.file = format;
+    if (v.save_format.length() == 0) v.save_format = format;
+    if (!v.save_format.compare("gif")) v.save_format = "webp";
+    v.load_format = format;
+
     if (pixeldata) stbi_image_free(pixeldata);
     if (delays) stbi_image_free(delays);
     return ok;
