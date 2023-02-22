@@ -171,7 +171,7 @@ bool stbi_xload(Task &v)
         if (!pixeldata) { ok = false; goto End; }
         if (ri.bits_per_channel != 8) {
             STBI_ASSERT(ri.bits_per_channel == 16);
-            result = stbi__convert_16_to_8((stbi__uint16*)result, x, y, 4);
+            pixeldata = stbi__convert_16_to_8((stbi__uint16*)pixeldata, x, y, 4);
             ri.bits_per_channel = 8;
         }
 
