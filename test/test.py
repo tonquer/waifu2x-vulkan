@@ -1,7 +1,7 @@
 import os, sys
 current_path = os.path.abspath(__file__)
 os.chdir(os.path.dirname(current_path))
-from waifu2x_vulkan import waifu2x_vulkan as waifu2x
+from waifu2x_vulkan import waifu2x
 import time
 
 if __name__ == "__main__":
