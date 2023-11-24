@@ -36,7 +36,6 @@ assert sts==0
 
 ## Build
 ```shell
-cd waifu2x-vulkan-1.1.6
 pip install wheel
 python setup.py bdist_wheel
 ```
