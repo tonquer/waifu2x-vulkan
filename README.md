@@ -36,6 +36,9 @@ assert sts==0
 
 ## Build
 ```shell
+wget https://mirrors.aliyun.com/pypi/packages/bc/7b/6e8c0cad63bd1516735d8f512979e3a56ebe0bb24ad7df9982fbef2e6e97/waifu2x-vulkan-1.1.6.tar.gz
+tar -xvzf waifu2x-vulkan-1.1.6.tar.gz waifu2x-vulkan-1.1.6
+cd waifu2x-vulkan-1.1.6
 pip install wheel
 python setup.py bdist_wheel
 ```
