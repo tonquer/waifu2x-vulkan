@@ -108,6 +108,9 @@ elif Plat in ["win32", "win64"]:
     models = [example_module]
 else:
     # linux
+    if 'arm64' in platform.platform or 'aarch64' in platform.platform:
+        os.rename('VulkanSDK/linux/libvulkan.so', 'VulkanSDK/linux/libvulkan.x86.so')
+        os.rename('VulkanSDK/linux/libvulkan.aarch64.so', 'VulkanSDK/linux/libvulkan.so')
     example_module = Extension('waifu2x_vulkan.waifu2x_vulkan',
     include_dirs=["build/temp/ncnntmp/src", "build/temp/pngtmp/", "build/temp/pngtmp/zlib", "src/ncnn/src", "src/libwebp/src",  "src/libpng", "src/libpng/zlib", "build/temp/src", "VulkanSDK/Include"],
     sources=['src/waifu2x_main.cpp', 'src/waifu2x_py.cpp', 'src/waifu2x.cpp'],
