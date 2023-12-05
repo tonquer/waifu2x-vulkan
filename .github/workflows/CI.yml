@@ -11,7 +11,7 @@ on:
 
 jobs:
   ubuntu:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     env:
       PACKAGENAME: waifu2x_vulkan_ubuntu_x86_64
     steps:
