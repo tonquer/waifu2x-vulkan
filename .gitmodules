@@ -10,6 +10,3 @@
 [submodule "src/zlib-ng"]
 	path = src/zlib-ng
 	url = https://github.com/zlib-ng/zlib-ng.git
-[submodule "src/libjxl"]
-	path = src/libjxl
-	url = https://github.com/libjxl/libjxl

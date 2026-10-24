@@ -15,6 +15,9 @@ static PyObject*
 waifu2x_py_get_model_name(PyObject* self, PyObject* args);
 
 static PyObject*
+waifu2x_py_set_thread_num(PyObject* self, PyObject* args, PyObject* kwargs);
+
+static PyObject*
 waifu2x_py_init_set(PyObject* self, PyObject* args, PyObject* kwargs);
 
 static PyObject*
@@ -65,6 +68,8 @@ PyInit_sr_vulkan(void);
 static PyMethodDef SpamMethods[] = {
     {"init",  waifu2x_py_init, METH_VARARGS,
      "Init ncnn\n"},
+    {"setThreadNum",  (PyCFunction)waifu2x_py_set_thread_num, METH_VARARGS | METH_KEYWORDS,
+     "set decode, proc, encode thread num, before initSet fun\n"},
     {"initSet",  (PyCFunction)waifu2x_py_init_set, METH_VARARGS | METH_KEYWORDS,
      "Init setting\ngpuId: getGpuInfo get index \ncpuNum(Option): CPU model use CPU num, default cpu num / 2 \n"},
     {"setWebpQuality",  (PyCFunction)waifu2x_py_set_webp_quality, METH_VARARGS,\
@@ -102,16 +107,48 @@ static PyMethodDef SpamMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
+static int mymodule_exec(PyObject *m) {
+    char modelName[256];
+    char modelNameTTa[256];
+    int index = 0;
+    int len = sizeof(AllModel) / sizeof(AllModel[0]);
+    for (int j = 0; j < len; j++)
+    {
+        std::string name = AllModel[j];
+        sprintf(modelName, "MODEL_%s", name.c_str());
+        sprintf(modelNameTTa, "%s_TTA", modelName);
+        if (PyModule_AddIntConstant(m, modelName, index++) < 0){
+            return -1;
+        }
+        if (PyModule_AddIntConstant(m, modelNameTTa, index++) < 0) {
+            return -1;
+        };
+    }
+    return 0;
+}
+
+static struct PyModuleDef_Slot Slots[] = {
+    {Py_mod_exec, mymodule_exec},
+#ifdef Py_MOD_GIL_NOT_USED
+    // 如果定义了该宏，说明当前编译环境是 Python 3.13+ 且支持 Freethreading
+    {Py_mod_gil, (void*)Py_MOD_GIL_NOT_USED},
+#endif
+    {0, NULL}
+};
+
 static struct PyModuleDef spammodule = {
     PyModuleDef_HEAD_INIT,
     "sr_vulkan",   /* name of module */
     "doc", /* module documentation, may be NULL */
-    -1,       /* size of per-interpreter state of the module,
+    0,       /* size of per-interpreter state of the module,
                  or -1 if the module keeps state in global variables. */
-    SpamMethods
+    SpamMethods,
+    Slots, // 绑定动态生成的 slots
+    NULL, NULL, NULL
 };
+
 
 static bool IsInit = false;
 static bool IsInitSet = false;
-static const char* Version = "2.0.1";
+static const char* Version = "2.1.0";
 #endif 

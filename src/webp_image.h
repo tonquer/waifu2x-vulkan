@@ -27,7 +27,6 @@ bool load_webp(Task &v)
     int width = config.input.width;
     int height = config.input.height;
     int channels = config.input.has_alpha ? 4 : 3;
-
     pixeldata = (unsigned char*)malloc(width * height * channels);
 
     config.output.colorspace = channels == 4 ? MODE_RGBA : MODE_RGB;
@@ -36,17 +35,14 @@ bool load_webp(Task &v)
     config.output.u.RGBA.size = width * height * channels;
     config.output.u.RGBA.rgba = pixeldata;
     config.output.is_external_memory = 1;
-    ncnn::Mat * inimage = new ncnn::Mat();
-    inimage->create(width, height, (size_t)channels, channels);
 
-    VP8StatusCode code = WebPDecode((uint8_t *)inimage->data, inimage->total()*channels, &config);
+    VP8StatusCode code = WebPDecode((uint8_t *)v.fileDate, v.fileSize, &config);
     if (code != VP8_STATUS_OK)
     {
         free(pixeldata);
-        inimage->release();
-        delete inimage;
         return false;
     }
+    ncnn::Mat* inimage = new ncnn::Mat(width, height, (void*)pixeldata, (size_t)channels, channels);
     v.inImage.push_back(inimage);
     v.inFrame.push_back(100);
     if (v.save_format.length() == 0) v.save_format = "webp";

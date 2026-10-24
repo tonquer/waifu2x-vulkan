@@ -58,7 +58,7 @@ bool png_save(Task& v)
 #else*/
     {
         ncnn::Mat& outimage = **v.outImage.begin();
-        if (v.toW != outimage.w || v.toH != outimage.h)
+        if ((v.toW > 0 && v.toH > 0) && (v.toW != outimage.w || v.toH != outimage.h))
         {
             unsigned char* odata = (unsigned char*)malloc(v.toW * v.toH * outimage.elempack);
             stbir_resize((unsigned char*)outimage.data, outimage.w, outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
@@ -66,13 +66,13 @@ bool png_save(Task& v)
                 STBIR_FILTER_BOX, STBIR_FILTER_BOX,
                 STBIR_COLORSPACE_SRGB, nullptr
             );
-            success = png_save_memery(v, v.toW, v.toH, outimage.elempack, (const unsigned char*)odata);
+            success = spng_save_memery(v, v.toW, v.toH, outimage.elempack, (const unsigned char*)odata);
             //v.out = stbi_write_png_to_mem(odata, 0, v.toW, v.toH, outimage.elempack, &v.outSize);
             stbi_image_free(odata);
             //success = (v.out != nullptr);
         }
         else {
-            success = png_save_memery(v, outimage.w, outimage.h, outimage.elempack, (const unsigned char*)outimage.data);
+            success = spng_save_memery(v, outimage.w, outimage.h, outimage.elempack, (const unsigned char*)outimage.data);
         }
     }
     return success;
@@ -83,7 +83,7 @@ bool jpg_save(Task& v)
 {
     bool success;
     ncnn::Mat& outimage = **v.outImage.begin();
-    if (v.toW != outimage.w || v.toH != outimage.h)
+    if ((v.toW > 0 && v.toH > 0) && (v.toW != outimage.w || v.toH != outimage.h))
     {
         unsigned char* odata = (unsigned char*)malloc(v.toW * v.toH * outimage.elempack);
         stbir_resize((unsigned char*)outimage.data, outimage.w, outimage.h, 0, odata, v.toW, v.toH, 0, STBIR_TYPE_UINT8, outimage.elempack, STBIR_ALPHA_CHANNEL_NONE, 0,
@@ -248,6 +248,10 @@ bool to_load(Task& v)
     if (!isSuc)
     {
         isSuc = load_jpeg(v);
+    }
+    if (!isSuc)
+    {
+        isSuc = load_spng(v);
     }
     if (!isSuc)
     {

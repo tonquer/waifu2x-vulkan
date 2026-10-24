@@ -1,6 +1,7 @@
 #ifndef WAIFU2X_MAIN_H
 #define WAIFU2X_MAIN_H
 #include <stdio.h>
+#include <mutex>
 #include <algorithm>
 #include <queue>
 #include <vector>
@@ -27,6 +28,8 @@ typedef wchar_t Waifu2xChar;
 #else
 typedef char Waifu2xChar;
 #endif
+
+static std::atomic<bool> IsExitFlag(false);
 
 enum Waifu2xError {
     NotModel = -20,
@@ -110,9 +113,9 @@ public:
         lock.lock();
         if (timeout == 0)
         {
-            while (tasks.size() == 0)
+            while (tasks.size() == 0 && !IsExitFlag)
             {
-                condition.wait(lock);
+                condition.wait(lock); 
             }
         }
         else {
@@ -123,12 +126,15 @@ public:
                 return;
             }
         }
+        if(IsExitFlag)
+        {
+            lock.unlock();
+            return;
+        }
 
         v = tasks.front();
         tasks.pop();
-
         lock.unlock();
-
         condition.signal();
     }
 
@@ -183,15 +189,49 @@ public:
         lock.unlock();
         condition.signal();
     }
+    
+    void broadcast() {
+        condition.broadcast();
+    }
+
 private:
     ncnn::Mutex lock;
     ncnn::ConditionVariable condition;
     std::queue<Task> tasks;
 };
 
+
+class LoadThreadParams
+{
+public:
+    int thread_id;
+    std::vector<Waifu2x*> waifu2xList;
+    std::vector<RealCUGAN*> realCuganList;
+    std::vector<RealSR*> realSrList;
+    std::vector<RealESRGAN*> realEsrganList;
+    
+    LoadThreadParams() {
+
+    }
+
+    ~LoadThreadParams() {
+        waifu2xList.clear();
+        realCuganList.clear();
+        realSrList.clear();
+        realEsrganList.clear();
+    }
+
+    int get_max_size()
+    {
+        return waifu2xList.size() + realCuganList.size() + realSrList.size() + realEsrganList.size();
+    }
+
+};
+
 int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale, int);
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, char *, unsigned int timeout);
 int waifu2x_init();
+int waifu2x_set_thread_num(int decodeThreadNum, int procThreadNum, int encodeThreadNum);
 int waifu2x_init_set(int gpuId2, int threadNum);
 int waifu2x_init_path(const Waifu2xChar*);
 int waifu2x_init_default_path(const Waifu2xChar*);
@@ -207,14 +247,20 @@ int waifu2x_remove_wait(std::set<int>&);
 int waifu2x_remove(std::set<int>&);
 void waifu2x_set_error(const char* err);
 std::string waifu2x_get_error();
+void signal_handler(int signum);
+int waifu2x_check_init_model(int initModel, LoadThreadParams* ltp);
+void init_waifu2x_model_size(LoadThreadParams* ltp);
+
+static std::mutex g_mutex;
+static std::mutex g_load_model;
 
 static std::string ErrMsg;
 static std::vector<ncnn::Thread*> ProcThreads;
 static std::vector<ncnn::Thread*> OtherThreads;
-static std::vector<Waifu2x*> Waifu2xList;
-static std::vector<RealCUGAN*> RealCuganList;
-static std::vector<RealSR*> RealSrList;
-static std::vector<RealESRGAN*> RealEsrganList;
+//static std::vector<Waifu2x*> Waifu2xList;
+//static std::vector<RealCUGAN*> RealCuganList;
+//static std::vector<RealSR*> RealSrList;
+//static std::vector<RealESRGAN*> RealEsrganList;
 
 class WriteData
 {

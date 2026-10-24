@@ -39,7 +39,7 @@ if(! $Env:PYTHON_BIN)
   $Env:PYTHON_BIN=(cmd /c where python|select -first 1)
 }
 $PYTHON_DIR=$Env:PYTHON_BIN.Replace("python.exe", "")
-$V=(&$Env:PYTHON_BIN -V 2>&1).Replace("Python ", "").Substring(0, 3).Replace(".", "")
+$V=(&$Env:PYTHON_BIN -c "import sys;print(f'{sys.version_info.major}{sys.version_info.minor}')" 2>&1)
 
 $PYTHON_LIBRARIES="$($PYTHON_DIR + '\libs\python3.lib;' + $PYTHON_DIR + "\libs\python" + $V + ".lib")"
 $PYTHON_INCLUDE_DIRS="$($PYTHON_DIR + '\include')"

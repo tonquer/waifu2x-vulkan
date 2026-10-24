@@ -66,7 +66,7 @@ if(MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -municode")
 endif()
 
-add_library(sr-vulkan SHARED waifu2x_main.cpp waifu2x.cpp realcugan.cpp realsr.cpp waifu2x_py.cpp realesrgan.cpp)
+add_library(sr-vulkan SHARED spng.c waifu2x_main.cpp waifu2x.cpp realcugan.cpp realsr.cpp waifu2x_py.cpp realesrgan.cpp)
 add_dependencies(sr-vulkan generate-spirv)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/deps_ncnn.cmake)

@@ -1,28 +1,10 @@
 #include "waifu2x_py.h"
 
+
 PyMODINIT_FUNC
 PyInit_sr_vulkan(void)
 {
-    PyObject* m;
-
-    m = PyModule_Create(&spammodule);
-    if (m == NULL)
-        return NULL;
-
-    char modelName[256];
-    char modelNameTTa[256];
-    int index = 0;
-    int len = sizeof(AllModel) / sizeof(AllModel[0]);
-    for (int j = 0; j < len; j++)
-    {
-        std::string name = AllModel[j];
-        sprintf(modelName, "MODEL_%s", name.c_str());
-        sprintf(modelNameTTa, "%s_TTA", modelName);
-        PyModule_AddIntConstant(m, modelName, index++);
-        PyModule_AddIntConstant(m, modelNameTTa, index++);
-    }
-
-    return m;
+    return PyModuleDef_Init(&spammodule);
 }
 
 static PyObject*
@@ -34,6 +16,23 @@ waifu2x_py_init(PyObject* self, PyObject* args)
     }
     int sts = waifu2x_init();
     IsInit = true;
+    return PyLong_FromLong(sts);
+}
+
+static PyObject*
+waifu2x_py_set_thread_num(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+    if (!IsInit) return PyLong_FromLong(-1);  
+    if (IsInitSet) return PyLong_FromLong(-1);  
+    Py_ssize_t  decodeNum = 0;
+    Py_ssize_t  procNum = 0;
+    Py_ssize_t  encodeNum = 0;
+    char* kwarg_names[] = { (char*)"decodeNum",(char*)"procNum", (char*)"encodeNum", NULL };
+    int sts;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "iii", kwarg_names, &decodeNum, &procNum, &encodeNum))
+        return PyLong_FromLong(-2);
+    sts = waifu2x_set_thread_num(decodeNum, procNum, encodeNum);
     return PyLong_FromLong(sts);
 }
 
@@ -337,9 +336,13 @@ waifu2x_py_add(PyObject* self, PyObject* args, PyObject* kwargs)
     //b = (unsigned char* )PyBytes_AsString((PyObject*)c);
     unsigned char* data = NULL;
 
+    PyThreadState* save;
+    save = PyEval_SaveThread();
     data = (unsigned char*)malloc(size);
     memcpy(data, b, size);
     sts = waifu2x_addData(data, size, callBack, modelIndex, format, width, high, scale, tileSize);
+    PyEval_RestoreThread(save);
+
     return PyLong_FromLong(sts);
 }
 static PyObject*

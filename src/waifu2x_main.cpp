@@ -4,29 +4,31 @@
 //#endif // _WIN32
 
 #include <cmath>
+#include <atomic>
+#include <csignal>
 
-TaskQueue Todecode;
-TaskQueue Toproc;
-TaskQueue Toencode;
-TaskQueue Tosave;
+static TaskQueue Todecode;
+static TaskQueue Toproc;
+static TaskQueue Toencode;
+static TaskQueue Tosave;
 
 
 static int GpuId;
 static int TotalJobsProc = 0;
-static int NumThreads = 1;
-static int TaskId = 1;
+static int TotalJobsDecode = 0;
+static int TotalJobsEncode = 0;
+static int NumThreads = 1;          // cpu threads
+static std::atomic<int> AutoTaskId(1);
+
 static int WebpQuality = 90;
 static int RealcuganSyncgap = 1;
 
-bool IsDebug = false;
+static bool IsDebug = false;
 
 Waifu2xChar GlobalModelPath[1024] = {0};
 Waifu2xChar DefaultModelPath[1024] = {0};
 
-int get_max_size()
-{
-    return Waifu2xList.size() + RealCuganList.size() + RealSrList.size() + RealEsrganList.size();
-}
+
 
 int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callBack, char * format, unsigned int timeout = 10)
 {
@@ -49,6 +51,9 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
         free(v.fileDate);
         v.fileDate = NULL;
     }
+    v.clear_in_image();
+    v.clear_out_image();
+
     if (!v.isSuc) {
         waifu2x_set_error(v.err.c_str());
         return v.id;
@@ -61,6 +66,7 @@ int waifu2x_getData(void*& out, unsigned long& outSize, double& tick, int& callB
     tick = v.allTick;
     return v.id;
 }
+
 void* waifu2x_decode(void* args)
 {
     for (;;)
@@ -69,7 +75,11 @@ void* waifu2x_decode(void* args)
         Todecode.get(v);
         if (v.id == -233)
             break;
-        if (v.modelIndex >= ((int)get_max_size()))
+        if (IsExitFlag)
+            break;
+        int modelLen = sizeof(AllModel) / sizeof(AllModel[0]);
+
+        if (v.modelIndex >= (modelLen))
         {
             v.isSuc = false; Tosave.put(v); continue;
         }
@@ -82,7 +92,20 @@ void* waifu2x_decode(void* args)
         }
         if (isSuc)
         {
-            Toproc.put(v);
+            if (v.modelIndex < 0 && !v.inImage.empty()) {
+                ftime(&v.procTick);
+                if (v.toH <= 0 || v.toW <= 0)
+                {
+                    v.toW = ceil(v.scale * v.inImage.front()->w);
+                    v.toH = ceil(v.scale * v.inImage.front()->h);
+                }
+                v.outImage = v.inImage;
+                v.inImage.clear();
+                Toencode.put(v);
+            }
+            else {
+                Toproc.put(v);
+            }
         }
         else
         {
@@ -99,6 +122,8 @@ void* waifu2x_encode(void* args)
         Task v;
         Toencode.get(v);
         if (v.id == -233)
+            break;
+        if (IsExitFlag)
             break;
         bool isSuc = to_save(v);
         v.clear_out_image();
@@ -130,7 +155,7 @@ void* waifu2x_encode(void* args)
     }
     return NULL;
 }
-void* waifu2x_process_data(Task &v, const SuperResolution* waifu2x)
+void* waifu2x_process_data(Task &v, const SuperResolution* waifu2x, LoadThreadParams* ltp)
 {
     const char* name;
     if (GpuId >= 0)
@@ -138,8 +163,8 @@ void* waifu2x_process_data(Task &v, const SuperResolution* waifu2x)
     else
         name = "cpu";
 
-    waifu2x_printf(stdout, "[SR_VULKAN] start encode imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, to_scale:%.2f, tta:%d, tileSize:%d, to_tile:%d\n",
-        v.callBack, name, v.save_format.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, v.scale, waifu2x->tta_mode, waifu2x->tilesize, v.tileSize);
+    waifu2x_printf(stdout, "[SR_VULKAN] start encode thread: %d, imageId :%d, gpu:%s, format:%s, model:%s, noise:%d, scale:%d, to_scale:%.2f, tta:%d, tileSize:%d, to_tile:%d\n",
+        ltp->thread_id, v.callBack, name, v.save_format.c_str(), waifu2x->mode_name.c_str(), waifu2x->noise, waifu2x->scale, v.scale, waifu2x->tta_mode, waifu2x->tilesize, v.tileSize);
 
     int scale_run_count = 1;
     int frame = 0;
@@ -182,16 +207,16 @@ void* waifu2x_process_data(Task &v, const SuperResolution* waifu2x)
         {
             if (i == scale_run_count - 1)
             {
-                waifu2x_printf(stdout, "[SR_VULKAN] start encode imageId :%d, count:%d, frame:%d, h:%d->%d, w:%d->%d \n",
-                    v.callBack, i + 1, frame, inimage.h, outimage->h, inimage.w, outimage->w);
+                waifu2x_printf(stdout, "[SR_VULKAN] start encode thread:%d, imageId :%d, count:%d, frame:%d, h:%d->%d, w:%d->%d \n",
+                    ltp->thread_id, v.callBack, i + 1, frame, inimage.h, outimage->h, inimage.w, outimage->w);
                 waifu2x->process(inimage, *outimage, v.tileSize);
                 inimage.release();
             }
             else
             {
                 ncnn::Mat tmpimage(inimage.w * waifu2x->scale, inimage.h * waifu2x->scale, (size_t)inimage.elemsize, (int)inimage.elemsize);
-                waifu2x_printf(stdout, "[SR_VULKAN] start encode imageId :%d, count:%d, frame:%d, h:%d->%d, w:%d->%d \n",
-                    v.callBack, i + 1, frame, inimage.h, tmpimage.h, inimage.w, tmpimage.w);
+                waifu2x_printf(stdout, "[SR_VULKAN] start encode thread:%d, imageId :%d, count:%d, frame:%d, h:%d->%d, w:%d->%d \n",
+                    ltp->thread_id, v.callBack, i + 1, frame, inimage.h, tmpimage.h, inimage.w, tmpimage.w);
                 waifu2x->process(inimage, tmpimage, v.tileSize);
                 inimage.release();
                 inimage = tmpimage;
@@ -208,6 +233,8 @@ void* waifu2x_process_data(Task &v, const SuperResolution* waifu2x)
 
 void* waifu2x_proc(void* args)
 {
+    LoadThreadParams* ltp = (LoadThreadParams*)args;
+    init_waifu2x_model_size(ltp);
     const SuperResolution* waifu2x;
     for (;;)
     {
@@ -215,28 +242,44 @@ void* waifu2x_proc(void* args)
         Toproc.get(v);
         if (v.id == -233)
             break;
+        if (IsExitFlag)
+            break;
+        int sts = waifu2x_check_init_model(v.modelIndex, ltp);
+        if (sts < 0)
+        {
+            waifu2x_set_error("load model fail");
+            if (sts == Waifu2xError::NotModel)
+            {
+                waifu2x_set_error("invalid model index");
+            }
+            v.err = waifu2x_get_error();
+            v.isSuc = false;
+            Tosave.put(v);
+            continue;
+        }
 
-        if (v.modelIndex >= Waifu2xList.size() + RealCuganList.size() + RealSrList.size())
+        if (v.modelIndex >= ltp->waifu2xList.size() + ltp->realCuganList.size() + ltp->realSrList.size())
         {
-            waifu2x = RealEsrganList[v.modelIndex - Waifu2xList.size() - RealCuganList.size() - RealSrList.size()];
-            waifu2x_process_data(v, waifu2x);
+            waifu2x = ltp->realEsrganList[v.modelIndex - ltp->waifu2xList.size() - ltp->realCuganList.size() - ltp->realSrList.size()];
+            waifu2x_process_data(v, waifu2x, ltp);
         }
-        else if (v.modelIndex >= Waifu2xList.size() + RealCuganList.size())
+        else if (v.modelIndex >= ltp->waifu2xList.size() + ltp->realCuganList.size())
         {
-            waifu2x = RealSrList[v.modelIndex - Waifu2xList.size() - RealCuganList.size()];
-            waifu2x_process_data(v, waifu2x);
+            waifu2x = ltp->realSrList[v.modelIndex - ltp->waifu2xList.size() - ltp->realCuganList.size()];
+            waifu2x_process_data(v, waifu2x, ltp);
         }
-        else if (v.modelIndex >= Waifu2xList.size())
+        else if (v.modelIndex >= ltp->waifu2xList.size())
         {
-            waifu2x = RealCuganList[v.modelIndex - Waifu2xList.size()];
-            waifu2x_process_data(v, waifu2x);
+            waifu2x = ltp->realCuganList[v.modelIndex - ltp->waifu2xList.size()];
+            waifu2x_process_data(v, waifu2x, ltp);
         }
         else
         {
-            waifu2x = Waifu2xList[v.modelIndex];
-            waifu2x_process_data(v, waifu2x);
+            waifu2x = ltp->waifu2xList[v.modelIndex];
+            waifu2x_process_data(v, waifu2x, ltp);
         }
     }
+    delete ltp;
     return NULL;
 }
 
@@ -256,7 +299,7 @@ void* waifu2x_to_stop(void* args)
     return 0;
 }
 
-int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mode, int num_threads, int index)
+int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mode, int num_threads, int index, LoadThreadParams* ltp)
 {
 
     Waifu2xChar parampath[1024];
@@ -357,13 +400,13 @@ int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mo
     struct _stat buffer;
     if (_wstat((wchar_t *)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_waifu2x\n");
         return Waifu2xError::NotModel;
     }
     if (_wstat((wchar_t *)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_waifu2x\n");
         return Waifu2xError::NotModel;
     }
@@ -372,13 +415,13 @@ int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mo
     struct stat buffer;
     if (stat((char *)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_waifu2x\n");
         return Waifu2xError::NotModel;
     }
     if (stat((char *)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, ot found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_waifu2x\n");
         return Waifu2xError::NotModel;
     }
@@ -412,11 +455,11 @@ int waifu2x_addModel(const Waifu2xChar* name, int scale2, int noise2, int tta_mo
 
     waifu->tilesize = tilesize;
     waifu->prepadding = prepadding;
-    Waifu2xList[index] = waifu;
+    ltp->waifu2xList[index] = waifu;
     return 1;
 }
 
-int realcugan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode, int num_threads, int index)
+int realcugan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode, int num_threads, int index, LoadThreadParams* ltp)
 {
     Waifu2xChar parampath[1024];
     Waifu2xChar modelpath[1024];
@@ -453,13 +496,13 @@ int realcugan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mo
     struct _stat buffer;
     if (_wstat((wchar_t*)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_realcugan\n");
         return Waifu2xError::NotModel;
     }
     if (_wstat((wchar_t*)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_realcugan\n");
         return Waifu2xError::NotModel;
     }
@@ -468,13 +511,13 @@ int realcugan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mo
     struct stat buffer;
     if (stat((char*)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_realcugan\n");
         return Waifu2xError::NotModel;
     }
     if (stat((char*)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_realcugan\n");
         return Waifu2xError::NotModel;
     }
@@ -552,11 +595,11 @@ int realcugan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mo
     waifu->tilesize = tilesize;
     waifu->prepadding = prepadding;
     waifu->syncgap = RealcuganSyncgap;
-    RealCuganList[index] = waifu;
+    ltp->realCuganList[index] = waifu;
     return 1;
 }
 
-int realsr_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode, int num_threads, int index)
+int realsr_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode, int num_threads, int index, LoadThreadParams* ltp)
 {
 
     Waifu2xChar parampath[1024];
@@ -595,13 +638,13 @@ int realsr_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode,
     struct _stat buffer;
     if (_wstat((wchar_t*)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_realsr\n");
         return Waifu2xError::NotModel;
     }
     if (_wstat((wchar_t*)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_realsr\n");
         return Waifu2xError::NotModel;
     }
@@ -610,13 +653,13 @@ int realsr_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode,
     struct stat buffer;
     if (stat((char*)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_realsr\n");
         return Waifu2xError::NotModel;
     }
     if (stat((char*)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_realsr\n");
         return Waifu2xError::NotModel;
     }
@@ -661,11 +704,11 @@ int realsr_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode,
 
     waifu->tilesize = tilesize;
     waifu->prepadding = prepadding;
-    RealSrList[index] = waifu;
+    ltp->realSrList[index] = waifu;
     return 1;
 }
 
-int realesrgan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode, int num_threads, int index)
+int realesrgan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_mode, int num_threads, int index, LoadThreadParams* ltp)
 {
 
     Waifu2xChar parampath[1024];
@@ -704,13 +747,13 @@ int realesrgan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_m
     struct _stat buffer;
     if (_wstat((wchar_t*)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_realesrgan\n");
         return Waifu2xError::NotModel;
     }
     if (_wstat((wchar_t*)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, L"[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, L"[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, L"[SR_VULKAN] please use pip install sr_vulkan_model_realesrgan\n");
         return Waifu2xError::NotModel;
     }
@@ -719,13 +762,13 @@ int realesrgan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_m
     struct stat buffer;
     if (stat((char*)parampath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", parampath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, parampath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_realesrgan\n");
         return Waifu2xError::NotModel;
     }
     if (stat((char*)modelpath, &buffer) != 0)
     {
-        waifu2x_printf(stderr, "[SR_VULKAN] not found path %s\n", modelpath);
+        waifu2x_printf(stderr, "[SR_VULKAN] thread:%d, not found path %s\n", ltp->thread_id, modelpath);
         waifu2x_printf(stderr, "[SR_VULKAN] please use pip install sr_vulkan_model_realesrgan\n");
         return Waifu2xError::NotModel;
     }
@@ -770,7 +813,7 @@ int realesrgan_addModel(const Waifu2xChar* name, int scale, int noise, int tta_m
 
     waifu->tilesize = tilesize;
     waifu->prepadding = prepadding;
-    RealEsrganList[index] = waifu;
+    ltp->realEsrganList[index] = waifu;
     return 1;
 }
 
@@ -779,7 +822,7 @@ int waifu2x_init()
 #if _WIN32
     CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #endif
-
+    IsExitFlag = false;
     return ncnn::create_gpu_instance();
 }
 
@@ -828,6 +871,19 @@ int waifu2x_init_path(const Waifu2xChar* modelPath2)
     return 0;
 }
 
+int waifu2x_set_thread_num(int decodeThreadNum, int procThreadNum, int encodeThreadNum) {
+    if (decodeThreadNum < 0 || decodeThreadNum > 128 || procThreadNum < 0 || procThreadNum > 128 || encodeThreadNum < 0 || encodeThreadNum > 128) 
+    { 
+        waifu2x_set_error("invalid thread num params");
+        return -1; 
+    };
+    TotalJobsProc = procThreadNum;
+    TotalJobsDecode = decodeThreadNum;
+    TotalJobsEncode = encodeThreadNum;
+    return 0;
+}
+
+
 int waifu2x_init_set(int gpuId2, int cpuNum)
 {
     if (cpuNum < 0 || cpuNum > 128) 
@@ -848,19 +904,59 @@ int waifu2x_init_set(int gpuId2, int cpuNum)
         waifu2x_set_error("invalid gpu device index params");
         return -1;
     }
+    
+    std::signal(SIGINT, signal_handler);
+
+    if (TotalJobsDecode <= 0) { TotalJobsDecode = 1; }
+    if (TotalJobsEncode <= 0) { TotalJobsEncode = 1; }
+
     if (gpuId2 == -1)
     {
         jobs_proc = std::min(jobs_proc, cpu_count);
         if (jobs_proc <= 0) { jobs_proc = std::max(1, cpu_count / 2); }
         NumThreads = jobs_proc;
-        TotalJobsProc = 1;
+        if (TotalJobsProc <= 0) { TotalJobsProc = 1; }
     }
     else
     {
         int gpu_queue_count = ncnn::get_gpu_info(gpuId2).compute_queue_count();
-        if (TotalJobsProc <= 0) { TotalJobsProc = std::min(2, gpu_queue_count); }
+        if (TotalJobsProc <= 0) { TotalJobsProc = 1; }
         NumThreads = 1;
     }
+    int modelLen = sizeof(AllModel) / sizeof(AllModel[0]);
+    waifu2x_printf(stdout, "[SR_VULKAN] init thread num, decode:%d, proc:%d, encode:%d, model num:%d\n", TotalJobsDecode, TotalJobsProc, TotalJobsEncode, modelLen);
+
+    // waifu2x proc
+    ProcThreads.resize(TotalJobsProc);
+    {
+
+        for (int j = 0; j < TotalJobsDecode; j++)
+        {
+            ncnn::Thread* save_thread = new ncnn::Thread(waifu2x_decode);
+            OtherThreads.push_back(save_thread);
+        }
+        for (int j = 0; j < TotalJobsEncode; j++)
+        {
+            ncnn::Thread *load_thread = new ncnn::Thread(waifu2x_encode);
+            OtherThreads.push_back(load_thread);
+        }
+
+        int total_jobs_proc_id = 0;
+        for (int j = 0; j < TotalJobsProc; j++)
+        {
+            LoadThreadParams* ltp = new LoadThreadParams();
+            ltp->thread_id = j + 1;
+            ProcThreads[total_jobs_proc_id++] = new ncnn::Thread(waifu2x_proc, (void*)ltp);
+        }
+    }
+    GpuId = gpuId2;
+    //waifu2x_printf(stdout, "init success, threadNum:%d\n", TotalJobsProc);
+    return 0;
+}
+
+void init_waifu2x_model_size(LoadThreadParams* ltp)
+{
+
     int len = sizeof(AllModel) / sizeof(AllModel[0]);
     for (int j = 0; j < len; j++)
     {
@@ -870,67 +966,47 @@ int waifu2x_init_set(int gpuId2, int cpuNum)
         std::wstring name = oldName2;
 
         if (name.find(L"WAIFU2X") != std::string::npos) {
-            Waifu2xList.push_back(NULL);
-            Waifu2xList.push_back(NULL);
+            ltp->waifu2xList.push_back(NULL);
+            ltp->waifu2xList.push_back(NULL);
         }
         else if (name.find(L"REALCUGAN") != std::string::npos) {
-            RealCuganList.push_back(NULL);
-            RealCuganList.push_back(NULL);
+            ltp->realCuganList.push_back(NULL);
+            ltp->realCuganList.push_back(NULL);
         }
         else if (name.find(L"REALSR") != std::string::npos) {
-            RealSrList.push_back(NULL);
-            RealSrList.push_back(NULL);
+            ltp->realSrList.push_back(NULL);
+            ltp->realSrList.push_back(NULL);
         }
         else if (name.find(L"REALESRGAN") != std::string::npos) {
-            RealEsrganList.push_back(NULL);
-            RealEsrganList.push_back(NULL);
+            ltp->realEsrganList.push_back(NULL);
+            ltp->realEsrganList.push_back(NULL);
         }
 #else
         std::string name = AllModel[j];
         if (name.find("WAIFU2X") != std::string::npos) {
-            Waifu2xList.push_back(NULL);
-            Waifu2xList.push_back(NULL);
+            ltp->waifu2xList.push_back(NULL);
+            ltp->waifu2xList.push_back(NULL);
         }
         else if (name.find("REALCUGAN") != std::string::npos) {
-            RealCuganList.push_back(NULL);
-            RealCuganList.push_back(NULL);
+            ltp->realCuganList.push_back(NULL);
+            ltp->realCuganList.push_back(NULL);
         }
         else if (name.find("REALSR") != std::string::npos) {
-            RealSrList.push_back(NULL);
-            RealSrList.push_back(NULL);
+            ltp->realSrList.push_back(NULL);
+            ltp->realSrList.push_back(NULL);
         }
         else if (name.find("REALESRGAN") != std::string::npos) {
-            RealEsrganList.push_back(NULL);
-            RealEsrganList.push_back(NULL);
+            ltp->realEsrganList.push_back(NULL);
+            ltp->realEsrganList.push_back(NULL);
         }
 #endif
     }
-    int modelLen = sizeof(AllModel) / sizeof(AllModel[0]);
-    waifu2x_printf(stdout, "[SR_VULKAN] init model num:%d, waifu2x:%d, realcugan:%d, realsr:%d, realesrgan:%d\n", modelLen, Waifu2xList.size(), RealCuganList.size(), RealSrList.size(), RealEsrganList.size());
-
-    // waifu2x proc
-    ProcThreads.resize(TotalJobsProc);
-    {
-
-        ncnn::Thread *load_thread = new ncnn::Thread(waifu2x_encode);
-        ncnn::Thread* save_thread = new ncnn::Thread(waifu2x_decode);
-        OtherThreads.push_back(load_thread);
-        OtherThreads.push_back(save_thread);
-
-        int total_jobs_proc_id = 0;
-        for (int j = 0; j < TotalJobsProc; j++)
-        {
-            ProcThreads[total_jobs_proc_id++] = new ncnn::Thread(waifu2x_proc);
-        }
-    }
-    GpuId = gpuId2;
-    //waifu2x_printf(stdout, "init success, threadNum:%d\n", TotalJobsProc);
-    return 0;
 }
 
-int waifu2x_check_init_model(int initModel)
+int waifu2x_check_init_model(int initModel, LoadThreadParams* ltp)
 {   
-    if (initModel < 0 || initModel >= (int)get_max_size())
+    std::lock_guard<std::mutex> lock(g_load_model);
+    if (initModel < 0 || initModel >= (int)ltp->get_max_size())
     {
         return Waifu2xError::NotModel;
     }
@@ -1004,17 +1080,17 @@ int waifu2x_check_init_model(int initModel)
         noise = 3;
     }
 #endif
-    if (initModel >= ((int)Waifu2xList.size() + (int)RealCuganList.size()) + (int)RealSrList.size())
+    if (initModel >= ((int)ltp->waifu2xList.size() + (int)ltp->realCuganList.size()) + (int)ltp->realSrList.size())
     {
-        initModel = initModel - (int)Waifu2xList.size() - (int)RealCuganList.size() - (int)RealSrList.size();
-        if (RealEsrganList[initModel])
+        initModel = initModel - (int)ltp->waifu2xList.size() - (int)ltp->realCuganList.size() - (int)ltp->realSrList.size();
+        if (ltp->realEsrganList[initModel])
         {
             return 1;
         }
 #if _WIN32
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", oldName.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, oldName.c_str(), modelIndex);
 #else
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", name.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, name.c_str(), modelIndex);
 #endif
         if (GpuId == -1)
         {
@@ -1026,47 +1102,47 @@ int waifu2x_check_init_model(int initModel)
             waifu2x_set_error("[SR_VULKAN] RealESRGAN not support cpu model");
             return Waifu2xError::NotSupport;
         }
-        return realesrgan_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel);
+        return realesrgan_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel, ltp);
     }
-    else if (initModel >= ((int)Waifu2xList.size() + (int)RealCuganList.size()))
+    else if (initModel >= ((int)ltp->waifu2xList.size() + (int)ltp->realCuganList.size()))
     {
-        initModel = initModel - (int)Waifu2xList.size() - (int)RealCuganList.size();
-        if (RealSrList[initModel])
+        initModel = initModel - (int)ltp->waifu2xList.size() - (int)ltp->realCuganList.size();
+        if (ltp->realSrList[initModel])
         {
             return 1;
         }
 #if _WIN32
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", oldName.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, oldName.c_str(), modelIndex);
 #else
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", name.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, name.c_str(), modelIndex);
 #endif
-        return realsr_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel);
+        return realsr_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel, ltp);
     }
-    else if (initModel >= ((int)Waifu2xList.size()))
+    else if (initModel >= ((int)ltp->waifu2xList.size()))
     {
-        initModel = initModel - (int)Waifu2xList.size();
-        if (RealCuganList[initModel])
+        initModel = initModel - (int)ltp->waifu2xList.size();
+        if (ltp->realCuganList[initModel])
         {
             return 1;
         }
 #if _WIN32
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", oldName.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, oldName.c_str(), modelIndex);
 #else
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", name.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, name.c_str(), modelIndex);
 #endif
-        return realcugan_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel);
+        return realcugan_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel, ltp);
     }
     else {
-        if (Waifu2xList[initModel])
+        if (ltp->waifu2xList[initModel])
         {
             return 1;
         }
 #if _WIN32
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", oldName.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, oldName.c_str(), modelIndex);
 #else
-        waifu2x_printf(stdout, "[SR_VULKAN] load model %s, index:%d\n", name.c_str(), modelIndex);
+        waifu2x_printf(stdout, "[SR_VULKAN] thread:%d, load model %s, index:%d\n", ltp->thread_id, name.c_str(), modelIndex);
 #endif
-        return waifu2x_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel);
+        return waifu2x_addModel(name.c_str(), scale, noise, tta, NumThreads, initModel, ltp);
     }
 
 
@@ -1077,8 +1153,8 @@ int waifu2x_check_init_model(int initModel)
 int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, int modelIndex, const char* format, unsigned long toW, unsigned long toH, float scale, int tileSize)
 {
     Task v;
-    TaskId ++;
-    v.id = TaskId;
+    AutoTaskId ++;
+    v.id = AutoTaskId;
     v.fileDate = (void*)data;
     v.fileSize = size;
     v.callBack = callBack;
@@ -1093,22 +1169,14 @@ int waifu2x_addData(const unsigned char* data, unsigned int size, int callBack, 
         waifu2x_set_error("invalid scale params");
         return -1;
     }
-    int sts = waifu2x_check_init_model(modelIndex);
-    if (sts < 0)
-    {
-        if (sts == Waifu2xError::NotModel)
-        {
-            waifu2x_set_error("invalid model index");
-        }
-        return sts;
-    }
+
     if (format) v.save_format = format;
     
     transform(v.save_format.begin(), v.save_format.end(), v.save_format.begin(), ::tolower);
     if (v.save_format.length() == 0 || !v.save_format.compare("jpg") || !v.save_format.compare("jpeg") || !v.save_format.compare("png") || !v.save_format.compare("webp") || !v.save_format.compare("jpg") || !v.save_format.compare("bmp") || !v.save_format.compare("apng"))
     {
         Todecode.put(v);
-        return TaskId;
+        return v.id;
     }
 
     waifu2x_set_error("invalid pictrue format");
@@ -1119,6 +1187,7 @@ int waifu2x_stop()
 {
     waifu2x_clear();
     {
+        IsExitFlag = true;
         Task end;
         end.id = -233;
         for (int i = 0; i < TotalJobsProc; i++)
@@ -1126,11 +1195,10 @@ int waifu2x_stop()
             Toproc.put(end);
         }
 
-        Task end2;
-        end2.id = -233;
-        Tosave.put(end2);
-        Toencode.put(end2);
-        Todecode.put(end2);
+        Toproc.broadcast();
+        Tosave.broadcast();
+        Toencode.broadcast();
+        Todecode.broadcast();
         ncnn::Thread t = ncnn::Thread(waifu2x_to_stop);
     }
     return 0;
@@ -1209,10 +1277,22 @@ int waifu2x_printf(void* p, const wchar_t* fmt, ...)
 
 void waifu2x_set_error(const char* err)
 {
+    std::lock_guard<std::mutex> lock(g_mutex);
     ErrMsg = err;
 }
 
 std::string waifu2x_get_error()
 {
+    std::lock_guard<std::mutex> lock(g_mutex);
     return ErrMsg;
+}
+
+void signal_handler(int signum) {
+    /*if (signum == SIGINT) {
+        IsExitFlag = true;
+        Toencode.broadcast();
+        Toproc.broadcast();
+        Todecode.broadcast();
+        Tosave.broadcast();
+    }*/
 }

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <png.h>
+#include "spng.h"
 
 struct png_read_context
 {
@@ -168,6 +169,120 @@ bool load_png(Task& v)
     if (v.save_format.length() == 0) v.save_format = "png";
     v.load_format = "png";
     return true;
+}
+
+unsigned char* spng_load_memery(Task& v, int *out_width, int *out_height, int* channels) {
+    int ret = 0;
+    spng_ctx *ctx = NULL;
+    unsigned char *image_out = NULL;
+    size_t out_size = 0;
+    struct spng_ihdr ihdr;
+    ctx = spng_ctx_new(0);
+    if (!ctx) {
+        v.err = "create spng error";
+        return NULL;
+    }
+    ret = spng_set_png_buffer(ctx, v.fileDate, v.fileSize);
+    if (ret) {
+        v.err = spng_strerror(ret);
+        goto cleanup;
+    }
+    ret = spng_get_ihdr(ctx, &ihdr);
+    if (ret) {
+        v.err = spng_strerror(ret);
+        goto cleanup;
+    }
+    int has_alpha = 0;
+    if (ihdr.color_type == SPNG_COLOR_TYPE_TRUECOLOR_ALPHA ||
+        ihdr.color_type == SPNG_COLOR_TYPE_GRAYSCALE_ALPHA) {
+        has_alpha = 1;
+    } else {
+        struct spng_trns trns;
+        if (spng_get_trns(ctx, &trns) == 0) {
+            has_alpha = 1;
+        }
+    }
+    int output_format = has_alpha ? SPNG_FMT_RGBA8 : SPNG_FMT_RGB8;
+    *channels = has_alpha ? 4 : 3;
+    *out_width = ihdr.width;
+    *out_height = ihdr.height;
+
+    spng_decoded_image_size(ctx, output_format, &out_size);
+    unsigned char *out_image = (unsigned char *)malloc(out_size);
+    if (!out_image) {
+        goto cleanup;
+    }
+    // 执行解码（一步到位完成所有像素转换和标准化）
+    ret = spng_decode_image(ctx, out_image, out_size, output_format, 0);
+    if (ret != 0) {
+        v.err = spng_strerror(ret);
+        free(out_image);
+        goto cleanup;
+    }
+cleanup:
+    spng_ctx_free(ctx);
+    return image_out;
+}
+
+bool load_spng(Task& v)
+{
+    unsigned char* pixeldata = 0;
+    bool ok = true;
+    void* result = 0;
+    int w = 0, h = 0, c = 0;
+    pixeldata = spng_load_memery(v, &w, &h, &c);
+    if (!pixeldata)
+    {
+        return false;
+    }
+    ncnn::Mat* inimage = new ncnn::Mat();
+    inimage->create(w, h, (size_t)c, c);
+    memcpy(inimage->data, pixeldata, w * h * c);
+    v.inImage.push_back(inimage);
+    v.inFrame.push_back(100);
+    if (pixeldata) stbi_image_free(pixeldata);
+    if (v.save_format.length() == 0) v.save_format = "png";
+    v.load_format = "png";
+    return true;
+}
+
+int spng_save_memery(Task& v, int w, int h, int c, const unsigned char* pixeldata)
+{
+    if (!pixeldata || w <= 0 || h <= 0 || (c != 3 && c != 4))
+        return 0;
+    spng_ctx *ctx = spng_ctx_new(SPNG_CTX_ENCODER);
+    if (!ctx)
+        return 0;
+    struct spng_ihdr ihdr = {0};
+    ihdr.width = static_cast<uint32_t>(w);
+    ihdr.height = static_cast<uint32_t>(h);
+    ihdr.bit_depth = 8;
+    ihdr.color_type = (c == 3) ? SPNG_COLOR_TYPE_TRUECOLOR : SPNG_COLOR_TYPE_TRUECOLOR_ALPHA;
+    int ret = spng_set_ihdr(ctx, &ihdr);
+    if (ret != SPNG_OK)
+    {
+        spng_ctx_free(ctx);
+        return 0;
+    }
+    spng_set_option(ctx, SPNG_ENCODE_TO_BUFFER, 1);
+    size_t pixel_bytes =  static_cast<size_t>(w) * h * c;
+    ret = spng_encode_image(ctx, pixeldata, pixel_bytes, SPNG_FMT_PNG, SPNG_ENCODE_FINALIZE);
+    if (ret == SPNG_OK) {
+        size_t out_png_size = 0;
+        void * png_data = spng_get_png_buffer(ctx, &out_png_size, &ret);
+        if (!png_data || ret != SPNG_OK) {
+            spng_ctx_free(ctx);
+            v.err = spng_strerror(ret);
+            return NULL;
+        }
+        v.out = png_data;
+        v.outSize = out_png_size;
+
+    } else {
+        v.err = spng_strerror(ret);
+    }
+    spng_ctx_free(ctx);
+    return (ret == SPNG_OK) ? 1 : 0;
 }
 
 #endif // PNG_IMAGE_H
